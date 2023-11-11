@@ -1,0 +1,13 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.formatting.provider": "none",
+  "files.exclude": {
+    "**/__pycache__": true,
+    // "bin": true,
+    // "geckodriver.log": true,
+    // "include": true,
+    // "lib": true
+  }
+}
