@@ -1,6 +1,7 @@
 # Other
 bin
 .VSCodeCounter
+logs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

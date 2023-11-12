@@ -34,13 +34,9 @@ def get_answer(data: str, quiz_question: str):
         timeout=8,
     )
 
-    print(response.choices)
     content = response.choices[0].message.content
 
     try:
         return json.loads(content)
     except json.JSONDecodeError:
         return [content]
-
-
-# def get_timed_answer(data: str, quiz_question: str, max_timeout: int):

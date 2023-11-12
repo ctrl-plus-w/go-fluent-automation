@@ -129,10 +129,10 @@ class MultiChoiceTextQuestion(Question):
                 button = self.element.find_element(*locator)
 
                 button.click()
-                self.logger.info(f'Selected the "{value}" choice.')
+                self.logger.debug(f'Selected the "{value}" choice.')
             except NoSuchElementException:
                 msg = "Invalid OpenAI completion answer, taking the 1st answer."
-                self.logger.error(msg)
+                self.logger.debug(msg)
 
                 xpath = "//button[contains(@class,'Question__option')]"
                 button = self.element.find_element(By.XPATH, xpath)
@@ -171,13 +171,13 @@ class ScrambledLettersQuestion(Question):
     def select_random_option(self):
         """Select a random option if there's some remaining"""
         option = self.get_random_option()
-        self.logger.info("Trying to select a random option.")
+        self.logger.debug("Trying to select a random option.")
 
         if option:
-            self.logger.info("Selecting a random option.")
+            self.logger.debug("Selecting a random option.")
             option.click()
         else:
-            self.logger.info("Did not found any random options.")
+            self.logger.debug("Did not found any random options.")
 
     def answer(self, values: str):
         if len(values[0]) > 1:
@@ -233,18 +233,18 @@ class MatchTextQuestion(Question):
     def select_random_option(self):
         """Select a random option if there's some remaining"""
         option = self.get_random_option()
-        self.logger.info("Trying to select a random option.")
+        self.logger.debug("Trying to select a random option.")
 
         if option:
-            self.logger.info("Selecting a random option.")
+            self.logger.debug("Selecting a random option.")
             option.click()
         else:
-            self.logger.info("Did not found any random options.")
+            self.logger.debug("Did not found any random options.")
 
     def answer(self, values: list[str]):
         for value in values:
             try:
-                self.logger.info(f"Retrieving button with value: '{value}'")
+                self.logger.debug(f"Retrieving button with value: '{value}'")
                 xpath = f'//button[contains(@class, "Question__fill-button") and not(contains(@class, "Question__fill-button-button_selected_yes")) and contains(text(), "{value}")]'
                 locator = (By.XPATH, xpath)
 
@@ -323,7 +323,7 @@ class FillGapsBlockQuestion(Question):
                     button = self.element.find_element(By.XPATH, xpath)
                     button.click()
                 except NoSuchElementException:
-                    self.logger.info(
+                    self.logger.debug(
                         "Did not found any more unselected letters, stopping the loop"
                     )
                     break

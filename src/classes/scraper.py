@@ -46,7 +46,7 @@ class Scraper:
 
     def setup_session(self):
         """Initialize the driver"""
-        self.logger.info("Setting up the session")
+        self.logger.info("Initializing the scraper.")
         headless = len(sys.argv) > 1 and "--headless" in sys.argv
 
         opts = Options()
@@ -57,7 +57,7 @@ class Scraper:
             opts.add_argument("--headless")
             opts.headless = True
 
-        self.logger.info("Creating the driver.")
+        self.logger.debug("Creating the driver.")
         self.driver = Firefox(options=opts, service=servs)
 
         self.driver.maximize_window()
@@ -71,7 +71,7 @@ class Scraper:
         if self.is_logged_in():
             return
 
-        self.logger.info("Logging in the user")
+        self.logger.info("Logging in to the GoFluent portal.")
 
         self.driver.get("https://portal.gofluent.com/app/login")
 
@@ -115,7 +115,7 @@ class Scraper:
         button = self.driver.find_element(*locator)
         button.click()
 
-        self.logger.info(f"Switched to the {tab}.")
+        self.logger.debug(f"Switched to the {tab}.")
 
     def select_learning_tab(self):
         """Switch to the learning tab"""
@@ -135,7 +135,7 @@ class Scraper:
         # Wait for the page to load
         locator = SELECTORS["NAV"]["CONTAINER"]
         self.wait_for_element(locator, "Page didn't load.")
-        self.logger.info("Page successfully loaded")
+        self.logger.debug("Page successfully loaded")
 
         self.select_tab(tab)
 

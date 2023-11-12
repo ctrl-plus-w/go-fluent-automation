@@ -23,7 +23,7 @@ class ActivityLearning:
 
     def retrieve_activity_data(self):
         """Retrieve the data from the activity"""
-        self.logger.info("Retrieving the activity data...")
+        self.logger.info("Retrieving the activity data.")
 
         self.scraper.load_activity_page_and_tab(self.activity, "LEARNING_TAB")
 
@@ -31,7 +31,7 @@ class ActivityLearning:
         locator = SELECTORS["ACTIVITY"]["TAB"]
         activity_learning_tabs = self.scraper.driver.find_elements(*locator)
 
-        self.logger.info("Retrieved the activity learning tabs")
+        self.logger.debug("Retrieved the activity learning tabs")
 
         for i, tab in enumerate(activity_learning_tabs):
             tab.click()
@@ -44,4 +44,4 @@ class ActivityLearning:
             html = section.get_attribute("outerHTML")
             data = get_data_from_section(html)
             self.activity.data.append(data)
-            self.logger.info(f"Successfully loaded the tab n°{i}")
+            self.logger.debug(f"Successfully loaded the tab n°{i}")

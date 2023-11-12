@@ -17,7 +17,7 @@ class CLI:
 
     def run(self):
         """Execute the CLI"""
-        print(
+        self.logger.info(
             "{} Chargement des {} ⚙️\n".format(
                 chalk.bold(chalk.yellow("!")),
                 chalk.bold(chalk.blue("variables d'environement")),
@@ -28,7 +28,7 @@ class CLI:
         valid = validators.url(url)
 
         if not valid:
-            print(f"{chalk.bold(chalk.yellow('!'))} L'URL est invalide.")
+            self.logger.info(f"{chalk.bold(chalk.yellow('!'))} L'URL est invalide.")
             return
 
         scraper = Scraper(self.logger)

@@ -1,12 +1,21 @@
 """Main"""
+import re
+from datetime import datetime
 
 from src.classes.logger import Logger
 from src.classes.cli import CLI
 
+from src.utils.fs import create_directory
+
 
 def main():
     """Main app method"""
-    logger = Logger("MAIN")
+    dt_directory = re.sub(r" |:|-", "_", str(datetime.now()).split(".", maxsplit=1)[0])
+    logs_directory = f"logs/{dt_directory}"
+
+    create_directory(logs_directory)
+
+    logger = Logger("MAIN", f"{logs_directory}/logs.txt")
 
     cli = CLI(logger)
     cli.run()

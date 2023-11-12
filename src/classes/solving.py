@@ -44,7 +44,7 @@ class ActivitySolving:
             )
             return question.correct_answer
 
-        self.logger.info(f'Answering : "{chalk.bold(question_str.strip())}"')
+        self.logger.debug(f'Answering : "{chalk.bold(question_str.strip())}"')
         self.logger.info("Waiting for OpenAI's response.")
         answer = get_answer(self.activity.data, question_str)
 
@@ -60,7 +60,7 @@ class ActivitySolving:
 
         if not question:
             classes = question_el.get_attribute("class")
-            self.logger.info(
+            self.logger.error(
                 f"Did not found any question matching. Classes : '{classes}'"
             )
             sys.exit()
