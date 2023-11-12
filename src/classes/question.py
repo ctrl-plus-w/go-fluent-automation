@@ -1,4 +1,6 @@
 """Activity quiz questions modules"""
+import chalk
+
 from logging import Logger
 
 from selenium.common.exceptions import NoSuchElementException, InvalidSelectorException
@@ -28,7 +30,7 @@ class Question:
 
     def get_correct_answer(self):
         """Return the value of the correct answer"""
-        return
+        return []
 
     def as_text(self):
         """Return the question as text"""
@@ -36,7 +38,23 @@ class Question:
 
     def answer(self, _value: str):
         """Answer the value and return the correct answer"""
-        return
+        return []
+
+    def submit_and_check_correct_answer(self, values: list[str]):
+        """Submit the question and check if the returned response is correct"""
+        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
+        submit_button.click()
+
+        correct_answer = self.get_correct_answer()
+
+        if correct_answer and correct_answer != values:
+            self.logger.info(
+                chalk.red(f"Wrong answer, the correct answer is '{correct_answer}'.")
+            )
+        else:
+            self.logger.info(chalk.green("Correct answer."))
+
+        return correct_answer or values
 
     @staticmethod
     def from_element(logger: Logger, element: WebElement):
@@ -120,17 +138,7 @@ class MultiChoiceTextQuestion(Question):
                 button = self.element.find_element(By.XPATH, xpath)
                 button.click()
 
-        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
-        submit_button.click()
-
-        correct_answer = self.get_correct_answer()
-
-        if correct_answer and correct_answer != values:
-            self.logger.info(f"Wrong answer, the correct answer is {correct_answer}.")
-        else:
-            self.logger.info("OpenAI returned a correct answer.")
-
-        return correct_answer or values
+        return self.submit_and_check_correct_answer(values)
 
 
 class ScrambledLettersQuestion(Question):
@@ -196,17 +204,7 @@ class ScrambledLettersQuestion(Question):
         while self.get_random_option():
             self.select_random_option()
 
-        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
-        submit_button.click()
-
-        correct_answer = self.get_correct_answer()
-
-        if correct_answer:
-            self.logger.info(f"Wrong answer, the correct answer is {correct_answer}.")
-        else:
-            self.logger.info("OpenAI returned a correct answer.")
-
-        return correct_answer or values
+        return self.submit_and_check_correct_answer(values)
 
 
 class MatchTextQuestion(Question):
@@ -260,17 +258,7 @@ class MatchTextQuestion(Question):
         while not (self.get_random_option() is None):
             self.select_random_option()
 
-        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
-        submit_button.click()
-
-        correct_answer = self.get_correct_answer()
-
-        if correct_answer:
-            self.logger.info(f"Wrong answer, the correct answer is {correct_answer}.")
-        else:
-            self.logger.info("OpenAI returned a correct answer.")
-
-        return correct_answer or values
+        return self.submit_and_check_correct_answer(values)
 
 
 class FillGapsTextQuestion(Question):
@@ -292,17 +280,7 @@ class FillGapsTextQuestion(Question):
 
         text_input.send_keys(value)
 
-        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
-        submit_button.click()
-
-        correct_answer = self.get_correct_answer()
-
-        if correct_answer:
-            self.logger.info(f"Wrong answer, the correct answer is {correct_answer}.")
-        else:
-            self.logger.info("OpenAI returned a correct answer.")
-
-        return correct_answer or values
+        return self.submit_and_check_correct_answer(values)
 
 
 class FillGapsBlockQuestion(Question):
@@ -314,7 +292,10 @@ class FillGapsBlockQuestion(Question):
         return self.question_str
 
     def get_correct_answer(self):
-        return get_green_text_correct_answer(self.element.get_attribute("outerHTML"))
+        content = get_green_text_correct_answer(self.element.get_attribute("outerHTML"))
+
+        if content:
+            return content.split(", ")
 
     def answer(self, values: list[str]):
         i = 0
@@ -345,14 +326,4 @@ class FillGapsBlockQuestion(Question):
                     )
                     break
 
-        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
-        submit_button.click()
-
-        correct_answer = self.get_correct_answer()
-
-        if correct_answer:
-            self.logger.info(f"Wrong answer, the correct answer is {correct_answer}.")
-        else:
-            self.logger.info("OpenAI returned a correct answer.")
-
-        return correct_answer or values
+        return self.submit_and_check_correct_answer(values)

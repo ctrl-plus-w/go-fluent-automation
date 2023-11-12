@@ -24,7 +24,7 @@ class Logger:
         std_handler = logging.StreamHandler()
 
         formatter = logging.Formatter(
-            fmt="%(asctime)s [%(name)s] %(levelname)s :: %(message)s"
+            fmt="%(asctime)s [%(name)s] %(message)s"
         )
 
         handlers = [std_handler]

@@ -1,8 +1,10 @@
 """Scraper handler section for the quiz tab"""
-import sys
-
 from logging import Logger
 from typing import TYPE_CHECKING
+
+import sys
+import time
+import chalk
 
 
 from src.classes.activity import Activity
@@ -36,13 +38,15 @@ class ActivitySolving:
 
         if question and question.correct_answer:
             self.logger.info(
-                f"Retrieving the cached response: '{question.correct_answer}'"
+                chalk.yellow(
+                    f"Retrieving the cached response: '{question.correct_answer}'"
+                )
             )
             return question.correct_answer
 
+        self.logger.info(f'Answering : "{chalk.bold(question_str.strip())}"')
         self.logger.info("Waiting for OpenAI's response.")
         answer = get_answer(self.activity.data, question_str)
-        self.logger.info(f'Answering : "{question_str.strip()}"')
 
         return answer
 
@@ -90,6 +94,7 @@ class ActivitySolving:
 
         while not self.scraper.is_finished():
             self.handle_question()
+            time.sleep(2)
             self.set_next_question()
 
         score = self.scraper.get_score()

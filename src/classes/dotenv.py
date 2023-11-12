@@ -50,6 +50,9 @@ class Dotenv:
 
     def get_key(self, key: str):
         """Retrieve a key from the dotenv file"""
+        if not key in self.values:
+            return None
+
         return self.values[key]
 
     def set_key(self, key: str, value: str):
