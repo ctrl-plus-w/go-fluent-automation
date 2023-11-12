@@ -3,7 +3,7 @@
 from typing import Dict
 from bs4 import BeautifulSoup
 
-from src.utils.lists import _f
+from src.utils.lists import _f, _m
 
 
 def get_section_type(soup: BeautifulSoup) -> str:
@@ -109,3 +109,85 @@ def get_data_from_section(section_html: str) -> Dict:
     }
 
     return {"type": section_type, **funcs[section_type](soup)}
+
+
+def get_match_text_question_as_text(question_html: str):
+    """Get the match type question as text"""
+    soup = BeautifulSoup(question_html, features="html.parser")
+
+    answers = []
+
+    for answer in soup.select(".Question__options > button"):
+        answers.append(answer.text)
+        answer.decompose()
+
+    for answer_input in soup.select(".Stem__answer"):
+        new_tag = soup.new_tag("p")
+        new_tag.string = "____\n"
+
+        answer_input.replace_with(new_tag)
+
+    answers_as_txt = "\n".join(_m(lambda t: f"- {t}", answers))
+
+    return soup.text.strip() + "\n" + answers_as_txt
+
+
+def get_green_text_correct_answer(question_html: str):
+    """Get the match text question correct answers as a list
+    (returns None if there's no correct answer div)"""
+    soup = BeautifulSoup(question_html, features="html.parser")
+
+    green_text = soup.find("p", {"style": "color: green;"}, recursive=True)
+
+    if not green_text:
+        return None
+
+    content = green_text.select_one("div")
+
+    return content.text
+
+
+def get_match_text_question_correct_answers(question_html: str):
+    """Get the match text question correct answers as a list
+    (returns None if there's no correct answer div)"""
+
+    content = get_green_text_correct_answer(question_html)
+
+    if not content:
+        return None
+
+    return content.split(", ")
+
+
+def get_fill_gaps_text_question_text_as_text(question_html: str):
+    """Get the match type question as text"""
+    soup = BeautifulSoup(question_html, features="html.parser")
+
+    for answer_input in soup.select(".Stem__answer_non-arabic"):
+        new_tag = soup.new_tag("p")
+        new_tag.string = "____"
+
+        answer_input.replace_with(new_tag)
+
+    return soup.text.strip()
+
+
+def get_fill_gaps_block_question_as_text(question_html: str):
+    """Get the match type question blocks output as text"""
+    soup = BeautifulSoup(question_html, features="html.parser")
+
+    answers = []
+
+    for answer in soup.select(".Question__fill-button"):
+        answers.append(answer.text)
+        answer.decompose()
+
+    for answer_input in soup.select(".Stem__answer"):
+        new_tag = soup.new_tag("p")
+        new_tag.string = "____"
+
+        answer_input.replace_with(new_tag)
+
+    answers_as_txt = "\n".join(_m(lambda t: f"- {t}", answers))
+
+    return soup.text.strip() + "\n" + answers_as_txt

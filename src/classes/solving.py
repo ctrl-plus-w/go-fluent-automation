@@ -1,9 +1,8 @@
 """Scraper handler section for the quiz tab"""
+import sys
+
 from logging import Logger
 from typing import TYPE_CHECKING
-
-from selenium.common import NoSuchElementException
-from selenium.webdriver.common.by import By
 
 
 from src.classes.activity import Activity
@@ -25,22 +24,27 @@ class ActivitySolving:
         self.logger = logger
         self.activity = activity
 
-    def get_correct_answer(self):
-        """Get the correct answer (text in green) of the quiz question"""
-        try:
-            locator = SELECTORS["QUIZ"]["CORRECT_ANSWER"]
-            correct_answer = self.scraper.driver.find_element(*locator)
+    def set_next_question(self):
+        """Set the next question"""
+        locator = SELECTORS["QUIZ"]["NEXT"]
+        button = self.scraper.driver.find_element(*locator)
+        button.click()
 
-            to_delete = correct_answer.find_element(By.CLASS_NAME, "language_fr")
-            to_delete.decompose()
+    def get_answer(self, question_str: str):
+        """Get the cached answer or the OpenAI Completion answer"""
+        question = self.activity.get_question(question_str)
 
-            return correct_answer.get_attribute("innerText")
-
-        except NoSuchElementException:
+        if question and question.correct_answer:
             self.logger.info(
-                "Did not found any answer correcting. That might be because the answer was correct."
+                f"Retrieving the cached response: '{question.correct_answer}'"
             )
-            return None
+            return question.correct_answer
+
+        self.logger.info("Waiting for OpenAI's response.")
+        answer = get_answer(self.activity.data, question_str)
+        self.logger.info(f'Answering : "{question_str.strip()}"')
+
+        return answer
 
     def handle_question(self):
         """Handle a question."""
@@ -51,19 +55,29 @@ class ActivitySolving:
         question = Question.from_element(self.logger, question_el)
 
         if not question:
-            # TODO : Handle if no question / put a random value.
-            return
+            classes = question_el.get_attribute("class")
+            self.logger.info(
+                f"Did not found any question matching. Classes : '{classes}'"
+            )
+            sys.exit()
 
         question_str = question.as_text()
 
-        self.logger.info(f'Answering : "{question_str.strip()}"')
-
-        self.logger.info("Waiting for OpenAI's response.")
-        answers = get_answer(self.activity.data, question_str)
-        self.logger.info(f"OpenAI Answer is : {answers}")
+        answers = self.get_answer(question_str)
 
         question.correct_answer = question.answer(answers)
         self.activity.questions.append(question)
+
+    def retake_if_score_under(self, expected_score: int):
+        """Click the ratake button if the score is under the expected score"""
+        score = self.scraper.get_score()
+
+        if not score is None and score < expected_score:
+            self.scraper.retake()
+            self.resolve_quiz()
+            return True
+
+        return False
 
     def resolve_quiz(self):
         """Answer to all the questions of the quiz"""
@@ -71,5 +85,15 @@ class ActivitySolving:
 
         self.scraper.load_activity_page_and_tab(self.activity, "QUIZ_TAB")
 
-        # TODO : Loop while there are remaining questions
-        self.handle_question()
+        if self.retake_if_score_under(100):
+            return
+
+        while not self.scraper.is_finished():
+            self.handle_question()
+            self.set_next_question()
+
+        score = self.scraper.get_score()
+
+        self.logger.info(f"Finished the quiz with a score of {score}%.")
+
+        self.retake_if_score_under(100)

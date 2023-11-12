@@ -67,5 +67,17 @@ SELECTORS = {
             By.CSS_SELECTOR,
             ".Question__submit",
         ),
+        "NEXT": (
+            By.CSS_SELECTOR,
+            ".Question__next",
+        ),
+        "RETAKE": (
+            By.CSS_SELECTOR,
+            ".QuizResults__retake",
+        ),
+        "VALUE": (
+            By.CSS_SELECTOR,
+            ".QuizResults__value",
+        ),
     },
 }

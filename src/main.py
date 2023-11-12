@@ -6,21 +6,14 @@ from src.classes.logger import Logger
 from src.classes.scraper import Scraper
 from src.classes.activity import Activity
 
-# from src.utils.openai import generate_prompt
-
 
 def main():
     """Main app method"""
     logger = Logger("MAIN")
 
-    # Question_type_match-text
-    # url = "https://portal.gofluent.com/app/dashboard/atp/vocabulary/81854/84107"
-    #        https://portal.gofluent.com/app/dashboard/atp/vocabulary/81854/85967
+    # SHORT TEXT URL : https://portal.gofluent.com/app/dashboard/atp/vocabulary/81854/85943
 
-    # Question_type_fill-in-the-gaps
-    # url = "https://portal.gofluent.com/app/dashboard/atp/vocabulary/81854/86018/"
-
-    url = "https://portal.gofluent.com/app/dashboard/atp/vocabulary/81854/85967"
+    url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary/81854/85894"
 
     activity = Activity(url)
 

@@ -4,7 +4,7 @@ import sys
 from logging import Logger
 from typing import Tuple, Optional
 
-# from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
@@ -138,6 +138,29 @@ class Scraper:
         self.logger.info("Page successfully loaded")
 
         self.select_tab(tab)
+
+    def is_finished(self):
+        """Check if the activity has a finished state"""
+        try:
+            locator = SELECTORS["QUIZ"]["RETAKE"]
+            self.driver.find_element(*locator)
+            return True
+        except NoSuchElementException:
+            return False
+
+    def get_score(self):
+        """Get the quiz score"""
+        try:
+            value_el = self.driver.find_element(*SELECTORS["QUIZ"]["VALUE"])
+            return int(value_el.text[:-1])
+        except NoSuchElementException:
+            return None
+
+    def retake(self):
+        """Retake the quiz"""
+        locator = SELECTORS["QUIZ"]["RETAKE"]
+        button = self.driver.find_element(*locator)
+        button.click()
 
     @logged_in
     def do_activity(self, activity: Activity):

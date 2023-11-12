@@ -1,4 +1,5 @@
 """Activity module"""
+from src.classes.question import Question
 
 
 class Activity:
@@ -7,7 +8,15 @@ class Activity:
     def __init__(self, url: str):
         self.url = url
         self.data = []
-        self.questions = []
+        self.questions: list[Question] = []
+
+    def get_question(self, question_str: str):
+        """Get the question by its question as string"""
+        for question in self.questions:
+            if question.question_str == question_str:
+                return question
+
+        return None
 
     def as_markdown(self):
         """Return the activity data as markdown"""
