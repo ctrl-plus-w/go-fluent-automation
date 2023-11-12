@@ -99,6 +99,8 @@ class ActivitySolving:
 
         score = self.scraper.get_score()
 
-        self.logger.info(f"Finished the quiz with a score of {score}%.")
+        self.logger.info(
+            chalk.bold(chalk.red(f"Finished the quiz with a score of {score}%."))
+        )
 
         self.retake_if_score_under(100)

@@ -183,6 +183,8 @@ class ScrambledLettersQuestion(Question):
         if len(values[0]) > 1:
             values = list(values[0])
 
+        values = _m(lambda l: l.upper(), values)
+
         for value in values:
             try:
                 xpath = "".join(
@@ -275,7 +277,7 @@ class FillGapsTextQuestion(Question):
     def answer(self, values: list[str]):
         value = values[0]
 
-        locator = (By.CSS_SELECTOR, ".Stem__answer_non-arabic")
+        locator = (By.CSS_SELECTOR, "input.Stem__answer_non-arabic")
         text_input = self.element.find_element(*locator)
 
         text_input.send_keys(value)

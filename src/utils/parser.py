@@ -163,7 +163,7 @@ def get_fill_gaps_text_question_text_as_text(question_html: str):
     """Get the match type question as text"""
     soup = BeautifulSoup(question_html, features="html.parser")
 
-    for answer_input in soup.select(".Stem__answer_non-arabic"):
+    for answer_input in soup.select("input.Stem__answer_non-arabic"):
         new_tag = soup.new_tag("p")
         new_tag.string = "____"
 
