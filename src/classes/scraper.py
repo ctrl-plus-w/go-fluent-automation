@@ -113,9 +113,9 @@ class Scraper:
 
         if self.are_credentials_invalid():
             self.logger.info("Credentials are invalid.")
+            sys.exit()
         else:
             self.logger.error("Credentials are valid.")
-            sys.exit()
 
         # Wait for the next page to load (checking the top left logo)
         self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"], "User is not logged in.")
