@@ -15,6 +15,10 @@ SELECTORS = {
             By.XPATH,
             "/html/body/div/main/div[2]/div/div/div/div/div/div/div/div[1]/form/div/button",
         ),
+        "FEEDBACK": (
+            By.CSS_SELECTOR,
+            ".form-module_feedback__fR-uq",
+        ),
     },
     "DASHBOARD": {
         "LOGO": (

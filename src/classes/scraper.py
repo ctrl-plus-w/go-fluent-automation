@@ -1,11 +1,10 @@
 """Selenimu scrapper"""
 import sys
 
-from logging import Logger
 from typing import Tuple, Optional
 from time import sleep
 
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
@@ -15,6 +14,7 @@ from selenium.webdriver import Firefox
 from src.classes.activity import Activity
 from src.classes.learning import ActivityLearning
 from src.classes.solving import ActivitySolving
+from src.classes.logger import Logger
 
 from src.utils.parser import get_urls_from_activities_container
 from src.utils.lists import _m
@@ -22,6 +22,16 @@ from src.utils.lists import _m
 
 from src.constants.credentials import USERNAME, PASSWORD
 from src.constants.selectors import SELECTORS
+
+
+def logged_in(func):
+    """Decorator to log in if the user isn't yet"""
+
+    def wrapper(self: "Scraper", *args, **kwargs):
+        self.login()
+        return func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class Scraper:
@@ -51,10 +61,15 @@ class Scraper:
     def setup_session(self):
         """Initialize the driver"""
         self.logger.info("Initializing the scraper.")
-        headless = len(sys.argv) > 1 and "--headless" in sys.argv
+
+        headless = "--headless" in sys.argv
+        prod = "--prod" in sys.argv
 
         opts = Options()
         servs = Service()
+
+        if prod:
+            opts.add_argument("--disable-dev-shm-usage")
 
         if headless:
             opts.add_argument("--no-sandbox")
@@ -69,6 +84,14 @@ class Scraper:
     def is_logged_in(self):
         """Check if the user is logged in to the Go Fluent website"""
         return self.driver.get_cookie("JSESSIONID")
+
+    def are_credentials_invalid(self):
+        """Check if the feedback block is shown"""
+        try:
+            self.wait_for_element(SELECTORS["LOGIN"]["FEEDBACK"], "Invalid", timeout=2)
+            return True
+        except TimeoutException:
+            return False
 
     def login(self, redirect: Optional[str] = None):
         """Log in the user to the GoFluent website"""
@@ -88,6 +111,12 @@ class Scraper:
         password_input.send_keys(PASSWORD)
         submit_button.click()
 
+        if self.are_credentials_invalid():
+            self.logger.info("Credentials are invalid.")
+        else:
+            self.logger.error("Credentials are valid.")
+            sys.exit()
+
         # Wait for the next page to load (checking the top left logo)
         self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"], "User is not logged in.")
 
@@ -96,16 +125,6 @@ class Scraper:
             self.driver.get(redirect)
 
         self.logger.info("Successfully logged in to Go Fluent.")
-
-    @staticmethod
-    def logged_in(func):
-        """Decorator to log in if the user isn't yet"""
-
-        def wrapper(self: "Scraper", *args, **kwargs):
-            self.login()
-            return func(self, *args, **kwargs)
-
-        return wrapper
 
     @logged_in
     def select_tab(self, tab: str):

@@ -23,4 +23,4 @@ COPY src /src
 
 FROM builder
 
-CMD ["python3", "-m", "src.test"]
+CMD ["python3", "-m", "src.main", "--headless", "--auto-run", "--debug", "--prod"]

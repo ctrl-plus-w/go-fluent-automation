@@ -39,8 +39,8 @@ class Logger:
         std_handler.setFormatter(std_formatter)
         std_handler.setLevel(logging.INFO)
 
-        # if "--debug" in sys.argv:
-        #     std_handler.setLevel(logging.INFO)
+        if "--debug" in sys.argv:
+            std_handler.setLevel(logging.DEBUG)
 
         handlers = [std_handler, file_handler]
 

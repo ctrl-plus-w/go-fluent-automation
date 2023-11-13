@@ -1,3 +1,6 @@
 selenium
 python-dotenv
 openai
+pychalk
+bs4
+validators
