@@ -25,8 +25,8 @@ def main():
 
         activities = scraper.retrieve_activities()
 
-        # for activity in activities:
-        #     scraper.do_activity(activity)
+        for activity in activities:
+            scraper.do_activity(activity)
     else:
         cli = CLI(logger)
         cli.run()
