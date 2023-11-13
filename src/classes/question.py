@@ -1,12 +1,13 @@
 """Activity quiz questions modules"""
-import chalk
-
 from logging import Logger
+
+import chalk
 
 from selenium.common.exceptions import NoSuchElementException, InvalidSelectorException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.by import By
 
+from src.utils.strings import escape
 from src.utils.lists import _m
 from src.utils.parser import (
     get_match_text_question_as_text,
@@ -123,13 +124,13 @@ class MultiChoiceTextQuestion(Question):
 
         for value in values:
             try:
-                xpath = f'//button[contains(@class,"Question__option")]//*[contains(text(), "{value}")]/..'
+                xpath = f'//button[contains(@class,"Question__option")]//*[contains(text(), "{escape(value)}")]/..'
                 locator = (By.XPATH, xpath)
 
                 button = self.element.find_element(*locator)
 
                 button.click()
-                self.logger.debug(f'Selected the "{value}" choice.')
+                self.logger.debug(f'Selected the "{escape(value)}" choice.')
             except NoSuchElementException:
                 msg = "Invalid OpenAI completion answer, taking the 1st answer."
                 self.logger.debug(msg)
@@ -190,7 +191,7 @@ class ScrambledLettersQuestion(Question):
                 xpath = "".join(
                     [
                         '//*[contains(@class,"Question_type_scrambled-letters__unselected-box")]',
-                        f'//button[contains(@class,"ScrambledLettersOption") and contains(text(), "{value.upper()}")]',
+                        f'//button[contains(@class,"ScrambledLettersOption") and contains(text(), "{escape(value).upper()}")]',
                     ]
                 )
 
@@ -244,8 +245,8 @@ class MatchTextQuestion(Question):
     def answer(self, values: list[str]):
         for value in values:
             try:
-                self.logger.debug(f"Retrieving button with value: '{value}'")
-                xpath = f'//button[contains(@class, "Question__fill-button") and not(contains(@class, "Question__fill-button-button_selected_yes")) and contains(text(), "{value}")]'
+                self.logger.debug(f"Retrieving button with value: '{escape(value)}'")
+                xpath = f'//button[contains(@class, "Question__fill-button") and not(contains(@class, "Question__fill-button-button_selected_yes")) and contains(text(), "{escape(value)}")]'
                 locator = (By.XPATH, xpath)
 
                 button = self.element.find_element(*locator)
@@ -337,7 +338,7 @@ class FillGapsBlockQuestion(Question):
     def answer(self, values: list[str]):
         for value in values:
             try:
-                xpath = f'//button[contains(@class, "Question__fill-button") and contains(text(), "{value}")]'
+                xpath = f'//button[contains(@class, "Question__fill-button") and contains(text(), "{escape(value)}")]'
                 locator = (By.XPATH, xpath)
 
                 button = self.element.find_element(*locator)

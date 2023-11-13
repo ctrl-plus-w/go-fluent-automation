@@ -3,8 +3,8 @@ bin
 .VSCodeCounter
 logs
 
-.env.alex
-.env.noah
+.env.*
+!.env.example
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

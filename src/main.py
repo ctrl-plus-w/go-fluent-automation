@@ -23,7 +23,7 @@ def main():
     if "--auto-run" in sys.argv:
         scraper = Scraper(logger)
 
-        activities = scraper.retrieve_activities(10)
+        activities = scraper.retrieve_activities(6)
 
         for activity in activities:
             scraper.do_activity(activity)
