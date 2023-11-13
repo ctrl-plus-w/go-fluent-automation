@@ -25,6 +25,10 @@ SELECTORS = {
             By.XPATH,
             "/html/body/div/div[5]/nav[1]/div/div[1]/div[1]",
         ),
+        "MODAL_SKIP": (
+            By.XPATH,
+            '//span[contains(@class, "skipButton")]',
+        ),
     },
     "VOCABULARY": {
         "ACTIVITIES_CONTAINER": (

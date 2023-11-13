@@ -53,11 +53,6 @@ class Scraper:
             expected_conditions.visibility_of_element_located(locator), message
         )
 
-    # def wait_and_find_element(self, locator: Tuple[str, str]):
-    #     """Wait for the element to be visible on the page and the return the element itself"""
-    #     self.wait_for_element(locator, f"Did not found the element {locator}.")
-    #     return self.driver.find_element(*locator)
-
     def setup_session(self):
         """Initialize the driver"""
         self.logger.info("Initializing the scraper.")
@@ -93,6 +88,16 @@ class Scraper:
         except TimeoutException:
             return False
 
+    def close_modal_if_exists(self):
+        """Close the page modal if it exists"""
+        try:
+            locator = SELECTORS["DASHBOARD"]["MODAL_SKIP"]
+            button = self.driver.find_element(*locator)
+            button.click()
+            self.logger.debug("Closed the modal.")
+        except (NoSuchElementException, TimeoutException):
+            return
+
     def login(self, redirect: Optional[str] = None):
         """Log in the user to the GoFluent website"""
         if self.is_logged_in():
@@ -116,6 +121,8 @@ class Scraper:
             sys.exit()
         else:
             self.logger.error("Credentials are valid.")
+
+        self.close_modal_if_exists()
 
         # Wait for the next page to load (checking the top left logo)
         self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"], "User is not logged in.")
