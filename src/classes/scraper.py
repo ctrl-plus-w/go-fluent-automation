@@ -202,7 +202,7 @@ class Scraper:
         solving.resolve_quiz()
 
     @logged_in
-    def retrieve_activities(self, count=10):
+    def retrieve_activities(self, count=10) -> Activity:
         """Retrieve n activities from the gofluent portal (where n = count)"""
         url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary"
 

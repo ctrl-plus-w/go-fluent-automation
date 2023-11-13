@@ -200,10 +200,8 @@ def get_urls_from_activities_container(container_html: str):
     activites = []
 
     for activity in soup.select("li.ResourcesList__item"):
-        # activity_soup = BeautifulSoup(activity, features="html.parser")
-
         container = activity.select_one(".resource-link")
-        done = activity.select_one("div.resource-link__done-icon > svg")
+        done = activity.select_one("div.resource-link__done-icon svg")
         # title = activity.select_one("div.resource-link__title")
 
         if done:

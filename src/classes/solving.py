@@ -94,7 +94,6 @@ class ActivitySolving:
 
         while not self.scraper.is_finished():
             self.handle_question()
-            time.sleep(2)
             self.set_next_question()
 
         score = self.scraper.get_score()

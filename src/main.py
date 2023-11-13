@@ -23,10 +23,13 @@ def main():
     if "--auto-run" in sys.argv:
         scraper = Scraper(logger)
 
-        activities = scraper.retrieve_activities()
+        activities = scraper.retrieve_activities(10)
 
         for activity in activities:
             scraper.do_activity(activity)
+
+        scraper.driver.quit()
+
     else:
         cli = CLI(logger)
         cli.run()

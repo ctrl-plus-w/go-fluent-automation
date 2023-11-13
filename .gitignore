@@ -3,6 +3,9 @@ bin
 .VSCodeCounter
 logs
 
+.env.alex
+.env.noah
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
