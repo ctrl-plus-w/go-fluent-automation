@@ -6,7 +6,6 @@ from datetime import datetime
 
 from src.classes.logger import Logger
 from src.classes.scraper import Scraper
-from src.classes.activity import Activity
 from src.classes.cli import CLI
 
 from src.utils.fs import create_directory
