@@ -1,7 +1,9 @@
 """Solver utils module"""
 import json
 
-from openai import OpenAI
+from openai import OpenAI, APITimeoutError
+
+from src.classes.logger import Logger
 
 from src.constants.credentials import OPENAI_API_KEY, OPENAI_ORGANIZATION
 
@@ -26,17 +28,21 @@ def generate_prompt(data: str, quiz_question: str):
     ]
 
 
-def get_answer(data: str, quiz_question: str):
+def get_answer(logger: Logger, data: str, quiz_question: str):
     """Get the OpenAI Completion answer from the activity data and the quiz question"""
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo-16k-0613",
-        messages=generate_prompt(data, quiz_question),
-        timeout=8,
-    )
-
-    content = response.choices[0].message.content
-
     try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return [content]
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo-16k-0613",
+            messages=generate_prompt(data, quiz_question),
+            timeout=10,
+        )
+
+        content = response.choices[0].message.content
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            return [content]
+    except APITimeoutError:
+        logger.debug("OpenAI request timed out after 10 seconds, retrying the query.")
+        return get_answer(logger, data, quiz_question)
