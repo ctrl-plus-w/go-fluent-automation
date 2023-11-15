@@ -3,7 +3,6 @@ from logging import Logger
 from typing import TYPE_CHECKING
 
 import sys
-import time
 import chalk
 
 
@@ -46,7 +45,7 @@ class ActivitySolving:
 
         self.logger.debug(f'Answering : "{chalk.bold(question_str.strip())}"')
         self.logger.info("Waiting for OpenAI's response.")
-        answer = get_answer(self.activity.data, question_str)
+        answer = get_answer(self.logger, self.activity.data, question_str)
         self.logger.debug(f'OpenAI Completion responsed with : "{chalk.bold(answer)}"')
 
         return answer
