@@ -13,7 +13,7 @@ def generate_prompt(data: str, quiz_question: str):
     return [
         {
             "role": "user",
-            "content": "You are an English expert, you will receive some data about an activity and you will have to responde to differents questions about these activities. Three types of questions will be prompted to you. You will need to ALWAYS responde as JSON an array of strings. And NEVER responde anything besides a JSON array of strings. The response MUST NOT be a JSON object. If multiple values are part of the response, they MUST be elements of the JSON array. If you need to complete a sentence, only return the missing part of the sentence that is marked as ____ but keep the result in a JSON array.",
+            "content": "You are an polyglot language expert, you will receive some data about a question and you will have to responde to differents questions about these activities. Three types of questions will be prompted to you. You will need to ALWAYS responde as JSON an array of strings. And NEVER responde anything besides a JSON array of strings. The response MUST NOT be a JSON object. If multiple values are part of the response, they MUST be elements of the JSON array. If you need to complete a sentence, only return the missing part of the sentence that is marked as ____ but keep the result in a JSON array.",
         },
         {
             "role": "user",

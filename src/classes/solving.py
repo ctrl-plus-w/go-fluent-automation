@@ -47,6 +47,7 @@ class ActivitySolving:
         self.logger.debug(f'Answering : "{chalk.bold(question_str.strip())}"')
         self.logger.info("Waiting for OpenAI's response.")
         answer = get_answer(self.activity.data, question_str)
+        self.logger.debug(f'OpenAI Completion responsed with : "{chalk.bold(answer)}"')
 
         return answer
 
@@ -67,7 +68,17 @@ class ActivitySolving:
 
         question_str = question.as_text()
 
-        answers = self.get_answer(question_str)
+        answers = (
+            ["SKIP"] if question.skip_completion else self.get_answer(question_str)
+        )
+
+        try:
+            _value = answers[0]
+        except KeyError:
+            self.logger.debug(
+                "Received an invalid value, resetting the answers variable."
+            )
+            answers = []
 
         question.correct_answer = question.answer(answers)
         self.activity.questions.append(question)

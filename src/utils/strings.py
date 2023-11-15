@@ -11,7 +11,7 @@ def escape(txt: str):
     return txt.translate(
         str.maketrans(
             {
-                '"': r"\"",
+                '"': "",
             }
         )
     )

@@ -15,6 +15,8 @@ from src.utils.parser import (
     get_fill_gaps_text_question_text_as_text,
     get_green_text_correct_answer,
     get_fill_gaps_block_question_as_text,
+    get_scrambled_sentences_block_question_as_text,
+    get_scrambled_sentences_block_question_choices,
 )
 
 from src.constants.selectors import SELECTORS
@@ -28,6 +30,7 @@ class Question:
         self.element = element
         self.question_str = ""
         self.correct_answer = None
+        self.skip_completion = False
 
     def get_correct_answer(self):
         """Return the value of the correct answer"""
@@ -53,7 +56,7 @@ class Question:
                 chalk.red(f"Wrong answer, the correct answer is '{correct_answer}'.")
             )
         else:
-            self.logger.info(chalk.green("Correct answer."))
+            self.logger.info(chalk.green(f"Correct answer. Caching : '{values}'"))
 
         return correct_answer or values
 
@@ -69,6 +72,7 @@ class Question:
 
         otp_block = "Question_output_text-blocks"
         otp_text = "Question_output_text"
+        otp_img = "Question_output_picture"
         otp_text_mult = "Question_output_text-multiple"
 
         if (
@@ -82,6 +86,9 @@ class Question:
         if has_all_classes(["Question_type_scrambled-letters", otp_text]):
             return ScrambledLettersQuestion(logger, element)
 
+        if has_all_classes(["Question_type_scrambled-sentence", otp_block]):
+            return ScrambledSentencesQuestion(logger, element)
+
         if has_all_classes(["Question_type_match-text", otp_block]):
             return MatchTextQuestion(logger, element)
 
@@ -90,6 +97,12 @@ class Question:
 
         if has_all_classes(["Question_type_fill-in-the-gaps", otp_block]):
             return FillGapsBlockQuestion(logger, element)
+
+        if has_all_classes(["Question_type_short-answer", otp_text]):
+            return ShortTextQuestion(logger, element)
+
+        if has_all_classes(["Question_type_multiple-choice", otp_img]):
+            return MultiChoiceImageQuestion(logger, element)
 
         return None
 
@@ -138,6 +151,73 @@ class MultiChoiceTextQuestion(Question):
                 xpath = "//button[contains(@class,'Question__option')]"
                 button = self.element.find_element(By.XPATH, xpath)
                 button.click()
+
+        return self.submit_and_check_correct_answer(values)
+
+
+class MultiChoiceImageQuestion(Question):
+    """Multi choices with image output question"""
+
+    def __init__(self, logger: Logger, element: WebElement):
+        super().__init__(logger, element)
+
+        self.skip_completion = True
+
+    def get_correct_answer(self):
+        try:
+            locator = (
+                By.CSS_SELECTOR,
+                ".Question__option.Question__option_correct_yes img",
+            )
+            correct_answer = self.element.find_element(*locator)
+            src = correct_answer.get_attribute("src")
+
+            basepath = "https://portal.gofluent.com"
+
+            if src.startswith(basepath):
+                return [src[len(basepath) :]]
+
+            return [src]
+
+        except NoSuchElementException:
+            return None
+
+    def as_text(self):
+        self.question_str = self.element.text
+        return self.question_str
+
+    def get_random_option(self):
+        """Get a random option (if no remaining, return None)"""
+        try:
+            xpath = '//*[contains(@class,"Question__options")]//button[contains(@class,"Question__option")]'
+            return self.element.find_element(By.XPATH, xpath)
+        except NoSuchElementException:
+            return None
+
+    def select_random_option(self):
+        """Select a random option if there's some remaining"""
+        option = self.get_random_option()
+        self.logger.debug("Trying to select a random option.")
+
+        if option:
+            self.logger.debug("Selecting a random option.")
+            option.click()
+        else:
+            self.logger.debug("Did not found any random options.")
+
+    def answer(self, values: str):
+        value = values[0]
+
+        if value == "SKIP":
+            self.select_random_option()
+        else:
+            xpath = f'//button[contains(@class,"Question__option")]//*[contains(@src, "{value}")]/..'
+            locator = (By.XPATH, xpath)
+
+            button = self.element.find_element(*locator)
+
+            button.click()
+            self.logger.debug(f'Selected the "{escape(value)}" choice.')
 
         return self.submit_and_check_correct_answer(values)
 
@@ -191,7 +271,7 @@ class ScrambledLettersQuestion(Question):
                 xpath = "".join(
                     [
                         '//*[contains(@class,"Question_type_scrambled-letters__unselected-box")]',
-                        f'//button[contains(@class,"ScrambledLettersOption") and contains(text(), "{escape(value).upper()}")]',
+                        f'//button[contains(@class,"ScrambledLettersOption") and (contains(text(), "{escape(value).upper()}") or contains(text(), "{escape(value).lower()}"))]',
                     ]
                 )
 
@@ -206,6 +286,122 @@ class ScrambledLettersQuestion(Question):
 
         while self.get_random_option():
             self.select_random_option()
+
+        return self.submit_and_check_correct_answer(values)
+
+
+class ScrambledSentencesQuestion(Question):
+    """Scrambled sentences block output question"""
+
+    def as_text(self):
+        html = self.element.get_attribute("outerHTML")
+        self.question_str = get_scrambled_sentences_block_question_as_text(html)
+        return self.question_str
+
+    def get_correct_answer(self):
+        html = self.element.get_attribute("outerHTML")
+
+        # Retrieve the green text (aka the answer)
+        answer = get_green_text_correct_answer(html)
+
+        if not answer:
+            return None
+
+        # Get the available choices
+        choices = get_scrambled_sentences_block_question_choices(html)
+
+        if len(choices) == 0:
+            return None
+
+        result = []
+
+        # Get the right choice one by one
+        while len(result) < len(choices):
+            correct_choice = None
+
+            for choice in choices:
+                if answer.startswith(choice):
+                    correct_choice = choice
+                    answer = answer[len(choice) :].strip()
+                    break
+
+            if not correct_choice:
+                self.logger.debug("Did not found any correct choice.")
+                return None
+
+            result.append(correct_choice)
+
+        return result
+
+    def get_random_option(self):
+        """Get a random option (if no remaining, return None)"""
+        try:
+            xpath = '//*[contains(@class,"Question_type_scrambled-sentence__unselected-box")]//button[contains(@class,"ScrambledSentenceOption")]'
+            return self.element.find_element(By.XPATH, xpath)
+        except NoSuchElementException:
+            return None
+
+    def select_random_option(self):
+        """Select a random option if there's some remaining"""
+        option = self.get_random_option()
+        self.logger.debug("Trying to select a random option.")
+
+        if option:
+            self.logger.debug("Selecting a random option.")
+            option.click()
+        else:
+            self.logger.debug("Did not found any random options.")
+
+    def answer(self, values: str):
+        for value in values:
+            try:
+                self.logger.debug(f"Retrieving button with value: '{escape(value)}'")
+                xpath = "".join(
+                    [
+                        '//*[contains(@class,"Question_type_scrambled-sentence__unselected-box")]',
+                        f'//button[contains(@class,"ScrambledSentenceOption") and contains(text(), "{escape(value)}")]',
+                    ]
+                )
+
+                locator = (By.XPATH, xpath)
+                button = self.element.find_element(*locator)
+                button.click()
+            except NoSuchElementException:
+                msg = "Invalid OpenAI completion answer, taking the 1st answer."
+                self.logger.error(msg)
+
+                self.select_random_option()
+
+        while self.get_random_option():
+            self.select_random_option()
+
+        return self.submit_and_check_correct_answer(values)
+
+
+class ShortTextQuestion(Question):
+    """Short text question"""
+
+    def as_text(self):
+        locator = (By.CSS_SELECTOR, ".Stem__answer-block-text")
+        self.question_str = self.element.find_element(*locator).text
+        return self.question_str
+
+    def get_correct_answer(self):
+        answer = get_green_text_correct_answer(self.element.get_attribute("outerHTML"))
+
+        if answer:
+            return [answer]
+
+        self.logger.debug("Did not found a green tag for the correct answer.")
+        return None
+
+    def answer(self, values: list[str]):
+        value = values[0]
+
+        locator = (By.CSS_SELECTOR, "textarea.Stem__answer_non-arabic")
+        text_input = self.element.find_element(*locator)
+
+        text_input.send_keys(value)
 
         return self.submit_and_check_correct_answer(values)
 

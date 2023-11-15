@@ -144,6 +144,9 @@ def get_green_text_correct_answer(question_html: str):
 
     content = green_text.select_one("div")
 
+    if not content:
+        return green_text.text
+
     return content.text
 
 
@@ -210,3 +213,29 @@ def get_urls_from_activities_container(container_html: str):
         activites.append(f"https://portal.gofluent.com{container.attrs['href']}")
 
     return activites
+
+
+def get_scrambled_sentences_block_question_choices(question_html: str):
+    """Get the scrambled sentences block question available questions"""
+    soup = BeautifulSoup(question_html, features="html.parser")
+
+    choices = soup.select(".ScrambledSentenceOption")
+
+    return _m(lambda c: c.text, choices)
+
+
+def get_scrambled_sentences_block_question_as_text(question_html: str):
+    """Get the scrambled sentences block question as text"""
+    soup = BeautifulSoup(question_html, features="html.parser")
+
+    choices = []
+
+    choices_el = soup.select(
+        ".Question_type_scrambled-sentence__unselected-box .ScrambledSentenceOption"
+    )
+
+    for choice in choices_el:
+        choices.append(choice.text)
+        choice.decompose()
+
+    return soup.text + "".join(_m(lambda c: f"\n- {c}", choices))

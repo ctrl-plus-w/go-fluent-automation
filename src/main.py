@@ -23,7 +23,7 @@ def main():
     if "--auto-run" in sys.argv:
         scraper = Scraper(logger)
 
-        activities = scraper.retrieve_activities(6)
+        activities = scraper.retrieve_activities(10)
 
         for activity in activities:
             scraper.do_activity(activity)
@@ -33,8 +33,6 @@ def main():
     else:
         cli = CLI(logger)
         cli.run()
-
-    # SHORT TEXT URL : https://portal.gofluent.com/app/dashboard/atp/vocabulary/81854/85943
 
 
 if __name__ == "__main__":
