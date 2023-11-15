@@ -9,15 +9,6 @@ from src.utils.lists import _m
 
 from src.constants.selectors import SELECTORS
 
-from src.classes.q.scrambled_sentences_question import ScrambledSentencesQuestion
-from src.classes.q.multi_choice_image_question import MultiChoiceImageQuestion
-from src.classes.q.scrambled_letters_question import ScrambledLettersQuestion
-from src.classes.q.multi_choice_text_question import MultiChoiceTextQuestion
-from src.classes.q.fill_gaps_block_question import FillGapsBlockQuestion
-from src.classes.q.fill_gaps_text_question import FillGapsTextQuestion
-from src.classes.q.match_text_question import MatchTextQuestion
-from src.classes.q.short_text_question import ShortTextQuestion
-
 
 class Question:
     """Activity quiz question interface"""
@@ -60,6 +51,23 @@ class Question:
     @staticmethod
     def from_element(logger: Logger, element: WebElement):
         """Get the appropriate Question sub-class for the element"""
+
+        from src.classes.questions.scrambled_sentences_question import (
+            ScrambledSentencesQuestion,
+        )
+        from src.classes.questions.multi_choice_image_question import (
+            MultiChoiceImageQuestion,
+        )
+        from src.classes.questions.scrambled_letters_question import (
+            ScrambledLettersQuestion,
+        )
+        from src.classes.questions.multi_choice_text_question import (
+            MultiChoiceTextQuestion,
+        )
+        from src.classes.questions.fill_gaps_block_question import FillGapsBlockQuestion
+        from src.classes.questions.fill_gaps_text_question import FillGapsTextQuestion
+        from src.classes.questions.match_text_question import MatchTextQuestion
+        from src.classes.questions.short_text_question import ShortTextQuestion
 
         curr_classes = element.get_attribute("class").split(" ")
 

@@ -6,8 +6,8 @@ import sys
 import chalk
 
 
+from src.classes.questions.question import Question
 from src.classes.activity import Activity
-from src.classes.question import Question
 
 from src.utils.ai import get_answer
 

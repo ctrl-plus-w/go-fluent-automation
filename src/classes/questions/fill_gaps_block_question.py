@@ -1,33 +1,45 @@
-"""Match text question module"""
-from selenium.common.exceptions import NoSuchElementException, InvalidSelectorException
+"""Fill gaps block output question module"""
+
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
-from src.classes.question import Question
+from src.classes.questions.question import Question
 
 from src.utils.strings import escape
 from src.utils.parser import (
-    get_match_text_question_correct_answers,
-    get_match_text_question_as_text,
+    get_fill_gaps_block_question_as_text,
+    get_green_text_correct_answer,
 )
 
 
-class MatchTextQuestion(Question):
-    """Match text question"""
+class FillGapsBlockQuestion(Question):
+    """Fill gaps blocks output question"""
 
     def as_text(self):
         html = self.element.get_attribute("outerHTML")
-        self.question_str = get_match_text_question_as_text(html)
+        self.question_str = get_fill_gaps_block_question_as_text(html)
         return self.question_str
 
     def get_correct_answer(self):
-        """Get the correct answer (text in green) of the quiz question"""
-        html = self.element.get_attribute("outerHTML")
-        return get_match_text_question_correct_answers(html)
+        content = get_green_text_correct_answer(self.element.get_attribute("outerHTML"))
+
+        if content:
+            return content.split(", ")
+
+        return None
+
+    def can_answer(self):
+        """Check if all the fill options buttons are filled"""
+        for button in self.element.find_elements(By.CSS_SELECTOR, ".Stem__answer"):
+            if button.text == "":
+                return True
+
+        return False
 
     def get_random_option(self):
         """Get a random option (if no remaining, return None)"""
         try:
-            xpath = '//button[contains(@class,"Question__fill-button") and not(contains(@class,"Question__fill-button_selected_yes"))]'
+            xpath = '//*[contains(@class,"Question__fill-button") and not(contains(@class, "Question__fill-button_selected_yes"))]'
             return self.element.find_element(By.XPATH, xpath)
         except NoSuchElementException:
             return None
@@ -46,20 +58,19 @@ class MatchTextQuestion(Question):
     def answer(self, values: list[str]):
         for value in values:
             try:
-                self.logger.debug(f"Retrieving button with value: '{escape(value)}'")
-                xpath = f'//button[contains(@class, "Question__fill-button") and not(contains(@class, "Question__fill-button-button_selected_yes")) and contains(text(), "{escape(value)}")]'
+                xpath = f'//button[contains(@class, "Question__fill-button") and contains(text(), "{escape(value)}")]'
                 locator = (By.XPATH, xpath)
 
                 button = self.element.find_element(*locator)
 
                 button.click()
-            except (NoSuchElementException, InvalidSelectorException):
+            except NoSuchElementException:
                 msg = "Invalid OpenAI completion answer, taking the 1st answer."
                 self.logger.error(msg)
 
                 self.select_random_option()
 
-        while not (self.get_random_option() is None):
+        while self.can_answer():
             self.select_random_option()
 
         return self.submit_and_check_correct_answer(values)

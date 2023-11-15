@@ -1,5 +1,5 @@
 """Activity module"""
-from src.classes.question import Question
+from src.classes.questions.question import Question
 
 
 class Activity:

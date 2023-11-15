@@ -3,7 +3,7 @@
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
-from src.classes.question import Question
+from src.classes.questions.question import Question
 
 from src.utils.lists import _m
 from src.utils.strings import escape
