@@ -204,7 +204,19 @@ class Scraper:
     @logged_in
     def retrieve_activities(self, count=10) -> Activity:
         """Retrieve n activities from the gofluent portal (where n = count)"""
-        url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary"
+        is_voca = "--vocabulary" in sys.argv
+        is_gram = "--grammar" in sys.argv
+
+        if not (is_voca or is_gram):
+            raise ValueError(
+                "One of the params --grammar or --vocabulary must be specified."
+            )
+
+        if is_voca:
+            url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary"
+
+        if is_gram:
+            url = "https://portal.gofluent.com/app/dashboard/resources/grammar"
 
         if self.driver.current_url != url:
             self.driver.get(url)
