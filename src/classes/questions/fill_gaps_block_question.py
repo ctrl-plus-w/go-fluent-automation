@@ -14,7 +14,6 @@ from src.utils.parser import (
 
 class FillGapsBlockQuestion(Question):
     """Fill gaps blocks output question"""
-
     def as_text(self):
         html = self.element.get_attribute("outerHTML")
         self.question_str = get_fill_gaps_block_question_as_text(html)

@@ -69,6 +69,10 @@ SELECTORS = {
         ),
     },
     "QUIZ": {
+        "CONTAINER": (
+            By.CSS_SELECTOR,
+            ".QuizContainer"
+        ),
         "QUESTION": (
             By.CSS_SELECTOR,
             ".Question",

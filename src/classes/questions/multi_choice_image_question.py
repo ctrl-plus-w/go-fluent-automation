@@ -12,8 +12,8 @@ from src.utils.strings import escape
 class MultiChoiceImageQuestion(Question):
     """Multi choices with image output question"""
 
-    def __init__(self, logger: Logger, element: WebElement):
-        super().__init__(logger, element)
+    def __init__(self, logger: Logger, q_type: str, element: WebElement):
+        super().__init__(logger, q_type, element)
 
         self.skip_completion = True
 

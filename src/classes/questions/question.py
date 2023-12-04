@@ -13,8 +13,9 @@ from src.constants.selectors import SELECTORS
 class Question:
     """Activity quiz question interface"""
 
-    def __init__(self, logger: Logger, element: WebElement):
+    def __init__(self, logger: Logger, q_type: str, element: WebElement):
         self.logger = logger
+        self.type = q_type
         self.element = element
         self.question_str = ""
         self.correct_answer = None
@@ -86,27 +87,27 @@ class Question:
             or has_all_classes(["Question_type_true-or-false", otp_text])
         ):
             m = otp_text_mult in curr_classes
-            return MultiChoiceTextQuestion(logger, element, m)
+            return MultiChoiceTextQuestion(logger, "Multiple choice text question", element, m)
 
         if has_all_classes(["Question_type_scrambled-letters", otp_text]):
-            return ScrambledLettersQuestion(logger, element)
+            return ScrambledLettersQuestion(logger, "Scrambled letters question", element)
 
         if has_all_classes(["Question_type_scrambled-sentence", otp_block]):
-            return ScrambledSentencesQuestion(logger, element)
+            return ScrambledSentencesQuestion(logger, "Scrambled sentences question", element)
 
         if has_all_classes(["Question_type_match-text", otp_block]):
-            return MatchTextQuestion(logger, element)
+            return MatchTextQuestion(logger, "Match text block question", element)
 
         if has_all_classes(["Question_type_fill-in-the-gaps", otp_text]):
-            return FillGapsTextQuestion(logger, element)
+            return FillGapsTextQuestion(logger, "Fill in gaps text question", element)
 
         if has_all_classes(["Question_type_fill-in-the-gaps", otp_block]):
-            return FillGapsBlockQuestion(logger, element)
+            return FillGapsBlockQuestion(logger, "Fill in gaps block question", element)
 
         if has_all_classes(["Question_type_short-answer", otp_text]):
-            return ShortTextQuestion(logger, element)
+            return ShortTextQuestion(logger, "Short answer text question", element)
 
         if has_all_classes(["Question_type_multiple-choice", otp_img]):
-            return MultiChoiceImageQuestion(logger, element)
+            return MultiChoiceImageQuestion(logger, "Multiple choice image question", element)
 
         return None

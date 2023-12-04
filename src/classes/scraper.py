@@ -140,7 +140,7 @@ class Scraper:
 
         locator = SELECTORS["NAV"][tab]
 
-        self.wait_for_element(locator, "Page didn't load.", 5)
+        self.wait_for_element(locator, "Page didn't load. (didn't found the nav tab)", 5)
 
         button = self.driver.find_element(*locator)
         button.click()
@@ -164,7 +164,7 @@ class Scraper:
 
         # Wait for the page to load
         locator = SELECTORS["NAV"]["CONTAINER"]
-        self.wait_for_element(locator, "Page didn't load.")
+        self.wait_for_element(locator, "Page didn't load. (didn't found the navs container)")
         self.logger.debug("Page successfully loaded")
 
         self.select_tab(tab)
@@ -224,7 +224,7 @@ class Scraper:
             self.driver.get(url)
 
         locator = SELECTORS["VOCABULARY"]["ACTIVITIES_LIST"]
-        self.wait_for_element(locator, "Page didn't load.")
+        self.wait_for_element(locator, "Page didn't load. (didn't found the activities list container)")
         activities_container = self.driver.find_element(*locator)
 
         html = activities_container.get_attribute("outerHTML")

@@ -12,8 +12,8 @@ from src.utils.strings import escape
 class MultiChoiceTextQuestion(Question):
     """Multi choices with text output question"""
 
-    def __init__(self, logger: Logger, element: WebElement, output_multiple: bool):
-        super().__init__(logger, element)
+    def __init__(self, logger: Logger, q_type: str, element: WebElement, output_multiple: bool):
+        super().__init__(logger, q_type, element)
 
         self.output_multiple = output_multiple
 

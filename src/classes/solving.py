@@ -1,4 +1,5 @@
 """Scraper handler section for the quiz tab"""
+from selenium.common.exceptions import TimeoutException
 from logging import Logger
 from typing import TYPE_CHECKING
 
@@ -53,7 +54,8 @@ class ActivitySolving:
     def handle_question(self):
         """Handle a question."""
         locator = SELECTORS["QUIZ"]["QUESTION"]
-        self.scraper.wait_for_element(locator, "Page didn't load.")
+        self.scraper.wait_for_element(locator, "Page didn't load. (didn't found the quiz question)")
+
 
         question_el = self.scraper.driver.find_element(*locator)
         question = Question.from_element(self.logger, question_el)
@@ -64,6 +66,8 @@ class ActivitySolving:
                 f"Did not found any question matching. Classes : '{classes}'"
             )
             sys.exit()
+
+        self.logger.info(chalk.bold(chalk.cyan(f"Loaded question with type '{question.type}'")))
 
         question_str = question.as_text()
 
@@ -98,6 +102,7 @@ class ActivitySolving:
         self.logger.info("Resolving the quiz...")
 
         self.scraper.load_activity_page_and_tab(self.activity, "QUIZ_TAB")
+        self.scraper.wait_for_element(SELECTORS["QUIZ"]["CONTAINER"], "Failed to load the quiz container.")
 
         if self.retake_if_score_under(100):
             return
