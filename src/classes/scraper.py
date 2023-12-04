@@ -125,7 +125,7 @@ class Scraper:
         self.close_modal_if_exists()
 
         # Wait for the next page to load (checking the top left logo)
-        self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"], "User is not logged in.")
+        self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"], "User is not logged in. (did not found the dashboard logo)")
 
         # If the redirected page is not the expected url, redirect
         if redirect and self.driver.current_url != redirect:
@@ -202,7 +202,7 @@ class Scraper:
         solving.resolve_quiz()
 
     @logged_in
-    def retrieve_activities(self, count=10) -> Activity:
+    def retrieve_activities(self, count=10) -> list[Activity]:
         """Retrieve n activities from the gofluent portal (where n = count)"""
         is_voca = "--vocabulary" in sys.argv
         is_gram = "--grammar" in sys.argv
@@ -211,6 +211,8 @@ class Scraper:
             raise ValueError(
                 "One of the params --grammar or --vocabulary must be specified."
             )
+
+        url = ""
 
         if is_voca:
             url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary"

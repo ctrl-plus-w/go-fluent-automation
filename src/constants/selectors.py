@@ -22,8 +22,8 @@ SELECTORS = {
     },
     "DASHBOARD": {
         "LOGO": (
-            By.XPATH,
-            "/html/body/div/div[5]/nav[1]/div/div[1]/div[1]",
+            By.CSS_SELECTOR,
+            ".header__logo",
         ),
         "MODAL_SKIP": (
             By.XPATH,

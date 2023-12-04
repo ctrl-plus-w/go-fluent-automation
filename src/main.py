@@ -14,7 +14,7 @@ from src.utils.fs import create_directory
 
 def main():
     """Main app method"""
-    dt_directory = re.sub(r" |:|-", "_", str(datetime.now()).split(".", maxsplit=1)[0])
+    dt_directory = re.sub(r"[ :-]", "_", str(datetime.now()).split(".", maxsplit=1)[0])
     logs_directory = f"logs/{dt_directory}"
 
     create_directory(logs_directory)
