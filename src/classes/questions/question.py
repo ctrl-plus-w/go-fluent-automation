@@ -20,6 +20,7 @@ class Question:
         self.question_str = ""
         self.correct_answer = None
         self.skip_completion = False
+        self.cache_used = False
 
     def get_correct_answer(self):
         """Return the value of the correct answer"""

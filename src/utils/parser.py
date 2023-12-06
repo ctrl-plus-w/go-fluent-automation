@@ -200,19 +200,17 @@ def get_urls_from_activities_container(container_html: str):
     """Get the activities as list[Activiy] from the vocabulary page activities container"""
     soup = BeautifulSoup(container_html, features="html.parser")
 
-    activites = []
+    activities = []
 
     for activity in soup.select("li.ResourcesList__item"):
         container = activity.select_one(".resource-link")
         done = activity.select_one("div.resource-link__done-icon svg")
         # title = activity.select_one("div.resource-link__title")
 
-        if done:
-            continue
+        if not done:
+            activities.append(f"https://portal.gofluent.com{container.attrs['href']}")
 
-        activites.append(f"https://portal.gofluent.com{container.attrs['href']}")
-
-    return activites
+    return activities
 
 
 def get_scrambled_sentences_block_question_choices(question_html: str):

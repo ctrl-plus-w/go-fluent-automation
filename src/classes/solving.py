@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import sys
 import chalk
 
-
 from src.classes.questions.question import Question
 from src.classes.activity import Activity
 
@@ -42,6 +41,7 @@ class ActivitySolving:
                     f"Retrieving the cached response: '{question.correct_answer}'"
                 )
             )
+            question.cache_used = True
             return question.correct_answer
 
         self.logger.debug(f'Answering : "{chalk.bold(question_str.strip())}"')
@@ -55,7 +55,6 @@ class ActivitySolving:
         """Handle a question."""
         locator = SELECTORS["QUIZ"]["QUESTION"]
         self.scraper.wait_for_element(locator, "Page didn't load. (didn't found the quiz question)")
-
 
         question_el = self.scraper.driver.find_element(*locator)
         question = Question.from_element(self.logger, question_el)
@@ -90,7 +89,7 @@ class ActivitySolving:
         """Click the ratake button if the score is under the expected score"""
         score = self.scraper.get_score()
 
-        if not score is None and score < expected_score:
+        if score is not None and score < expected_score:
             self.scraper.retake()
             self.resolve_quiz()
             return True
@@ -104,7 +103,12 @@ class ActivitySolving:
         self.scraper.load_activity_page_and_tab(self.activity, "QUIZ_TAB")
         self.scraper.wait_for_element(SELECTORS["QUIZ"]["CONTAINER"], "Failed to load the quiz container.")
 
-        if self.retake_if_score_under(100):
+        has_all_cached_answers_been_used = bool(len(self.activity.questions)) and all(
+            map(lambda q: q.cache_used, self.activity.questions))
+
+        # In case something wrong happens and the cached answers are all used twice, we exit the resolving to avoid
+        # infinite loops
+        if has_all_cached_answers_been_used or self.retake_if_score_under(100):
             return
 
         while not self.scraper.is_finished():
