@@ -30,6 +30,39 @@ SELECTORS = {
             '//span[contains(@class, "skipButton")]',
         ),
     },
+    "TRAINING": {
+        "CONTAINER": (
+            By.CSS_SELECTOR, ".training-page"
+        ),
+        "PAGINATION": (
+            By.CSS_SELECTOR,
+            ".pagination"
+        ),
+        "PAGINATION_ITEM": (
+            By.CSS_SELECTOR,
+            ".pagination-item"
+        ),
+        "BLOCK": (
+            By.CSS_SELECTOR,
+            '.training-card-block',
+        ),
+        "BLOCK_DATE": (
+            By.CSS_SELECTOR,
+            '.training-card-block__date',
+        ),
+        "BLOCK_CARD_BLOCK": (
+            By.CSS_SELECTOR,
+            '.training-card-block',
+        ),
+        "BLOCK_CARD": (
+            By.CSS_SELECTOR,
+            ".training-card",
+        ),
+        "BLOCK_CARD_LINK": (
+            By.CSS_SELECTOR,
+            '.training-card__link',
+        )
+    },
     "VOCABULARY": {
         "ACTIVITIES_CONTAINER": (
             By.XPATH,

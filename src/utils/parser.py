@@ -1,9 +1,18 @@
 """Parse module"""
-
+from datetime import datetime
 from typing import Dict
 from bs4 import BeautifulSoup
 
 from src.utils.lists import _f, _m
+
+
+def get_date_from_str(txt: str):
+    """Get the datetime instance from a date str of the format -> mmmmm dd, yyyy (locale: FR)"""
+    months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
+              "novembre", "décembre"]
+
+    month_str, date_str, year_str = txt.split(' ')
+    return datetime(int(year_str), months.index(month_str) + 1, int(date_str[:-1]))
 
 
 def get_section_type(soup: BeautifulSoup) -> str:
@@ -27,7 +36,7 @@ def get_section_type(soup: BeautifulSoup) -> str:
     sets = [vocab_cols_images_sets_len, vocab_rows_images_sets_len, vocab_rows_sets_len]
 
     assert (
-        len(_f(lambda s: s > 0, sets)) == 1 or len(_f(lambda s: s != 0, sets)) == 1
+            len(_f(lambda s: s > 0, sets)) == 1 or len(_f(lambda s: s != 0, sets)) == 1
     ), "Cannot determine the type of the section."
 
     if vocab_cols_images_sets_len > 0:

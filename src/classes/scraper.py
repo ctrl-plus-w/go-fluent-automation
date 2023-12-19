@@ -1,27 +1,24 @@
-"""Selenimu scrapper"""
+"""Selenium scrapper"""
 import sys
-
-from typing import Tuple, Optional
 from time import sleep
+from typing import Tuple, Optional
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
-from selenium.webdriver import Firefox
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
 
 from src.classes.activity import Activity
 from src.classes.learning import ActivityLearning
-from src.classes.solving import ActivitySolving
 from src.classes.logger import Logger
-
-from src.utils.parser import get_urls_from_activities_container
-from src.utils.lists import _m
-
-
+from src.classes.solving import ActivitySolving
 from src.constants.credentials import USERNAME, PASSWORD
 from src.constants.selectors import SELECTORS
+from src.utils.lists import _m
+from src.utils.parser import get_urls_from_activities_container, get_date_from_str
 
 
 def logged_in(func):
@@ -43,10 +40,10 @@ class Scraper:
         self.setup_session()
 
     def wait_for_element(
-        self,
-        locator: Tuple[str, str],
-        message: str,
-        timeout: int = 15,
+            self,
+            locator: Tuple[str, str],
+            message: str,
+            timeout: int = 15,
     ):
         """Wait for an element to be visible by the driver"""
         WebDriverWait(self.driver, timeout).until(
@@ -125,7 +122,8 @@ class Scraper:
         self.close_modal_if_exists()
 
         # Wait for the next page to load (checking the top left logo)
-        self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"], "User is not logged in. (did not found the dashboard logo)")
+        self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"],
+                              "User is not logged in. (did not found the dashboard logo)")
 
         # If the redirected page is not the expected url, redirect
         if redirect and self.driver.current_url != redirect:
@@ -201,9 +199,68 @@ class Scraper:
         solving = ActivitySolving(self.logger, self, activity)
         solving.resolve_quiz()
 
+    def get_next_page_button(self):
+        """Retrieve the pagination next page button"""
+        locator = SELECTORS["TRAINING"]["PAGINATION"]
+        pagination = self.driver.find_element(*locator)
+
+        locator = SELECTORS["TRAINING"]["PAGINATION_ITEM"]
+        button = pagination.find_elements(*locator)[-1]
+
+        return button
+
+    def can_next_page(self):
+        """Retrieve whether the button of the pagination is disabled or not"""
+        button = self.get_next_page_button()
+        return button.get_attribute("disabled") is None
+
+    def retrieve_activities_from_block(self, block: WebElement):
+        """Retrieve the activities from a block (training page)"""
+        locator = SELECTORS["TRAINING"]["BLOCK_DATE"]
+        date_el = block.find_element(*locator)
+
+        locator = SELECTORS["TRAINING"]["BLOCK_CARD"]
+        block_cards = block.find_elements(*locator)
+
+        date = get_date_from_str(date_el.text)
+
+        activities = []
+
+        for block_card in block_cards:
+            locator = SELECTORS["TRAINING"]["BLOCK_CARD_LINK"]
+            url = f"https://portal.gofluent.com{block_card.find_element(*locator).get_attribute('href')}"
+            activities.append(Activity(url, date))
+
+        return activities
+
+    @logged_in
+    def retrieved_done_activities(self):
+        """Retrieve the list of all the done activities"""
+        url = "https://portal.gofluent.com/app/training"
+        if self.driver.current_url != url:
+            self.driver.get(url)
+
+        locator = SELECTORS["TRAINING"]["CONTAINER"]
+        self.wait_for_element(locator, "Page didn't load. (didn't found the training container)")
+
+        activities = []
+
+        while self.can_next_page():
+            locator = SELECTORS["TRAINING"]["BLOCK_CARD_BLOCK"]
+            blocks = self.driver.find_elements(*locator)
+
+            for block in blocks:
+                _activities = self.retrieve_activities_from_block(block)
+                activities += _activities
+
+            button = self.get_next_page_button()
+            button.click()
+
+        return activities
+
     @logged_in
     def retrieve_activities(self, count=10) -> list[Activity]:
-        """Retrieve n activities from the gofluent portal (where n = count)"""
+        """Retrieve n activities from the go-fluent portal (where n = count)"""
         is_voca = "--vocabulary" in sys.argv
         is_gram = "--grammar" in sys.argv
 

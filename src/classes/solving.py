@@ -86,7 +86,7 @@ class ActivitySolving:
         self.activity.questions.append(question)
 
     def retake_if_score_under(self, expected_score: int):
-        """Click the ratake button if the score is under the expected score"""
+        """Click the retake button if the score is under the expected score"""
         score = self.scraper.get_score()
 
         if score is not None and score < expected_score:

@@ -1,12 +1,16 @@
 """Activity module"""
+from datetime import datetime
+from typing import Optional
+
 from src.classes.questions.question import Question
 
 
 class Activity:
     """Activity class"""
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, date: Optional[datetime] = None):
         self.url = url
+        self.date = date
         self.data = []
         self.questions: list[Question] = []
 
