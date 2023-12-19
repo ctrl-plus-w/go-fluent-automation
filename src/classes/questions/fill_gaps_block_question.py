@@ -4,16 +4,13 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 from src.classes.questions.question import Question
-
+from src.utils.parser import get_fill_gaps_block_question_as_text, get_green_text_correct_answer
 from src.utils.strings import escape
-from src.utils.parser import (
-    get_fill_gaps_block_question_as_text,
-    get_green_text_correct_answer,
-)
 
 
 class FillGapsBlockQuestion(Question):
     """Fill gaps blocks output question"""
+
     def as_text(self):
         html = self.element.get_attribute("outerHTML")
         self.question_str = get_fill_gaps_block_question_as_text(html)
@@ -57,7 +54,7 @@ class FillGapsBlockQuestion(Question):
     def answer(self, values: list[str]):
         for value in values:
             try:
-                xpath = f'//button[contains(@class, "Question__fill-button") and contains(text(), "{escape(value)}")]'
+                xpath = f'//button[contains(@class, "Question__fill-button") and text()="{escape(value)}"]'
                 locator = (By.XPATH, xpath)
 
                 button = self.element.find_element(*locator)
