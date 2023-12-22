@@ -108,7 +108,9 @@ class ActivitySolving:
 
         # In case something wrong happens and the cached answers are all used twice, we exit the resolving to avoid
         # infinite loops
-        if has_all_cached_answers_been_used or self.retake_if_score_under(100):
+        if has_all_cached_answers_been_used:
+            msg = f"All questions have been used and it's trying to retake the quiz. Skipping. "
+            self.logger.info(chalk.bold(chalk.yellow(msg)))
             return
 
         while not self.scraper.is_finished():
@@ -117,8 +119,7 @@ class ActivitySolving:
 
         score = self.scraper.get_score()
 
-        self.logger.info(
-            chalk.bold(chalk.red(f"Finished the quiz with a score of {score}%."))
-        )
+        msg = f"Finished the quiz with a score of {score}%."
+        self.logger.info(chalk.bold(chalk.red(msg)))
 
         self.retake_if_score_under(100)
