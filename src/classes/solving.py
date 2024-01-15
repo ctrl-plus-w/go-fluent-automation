@@ -36,28 +36,35 @@ class ActivitySolving:
         question = self.activity.get_question(question_str)
 
         if question and question.correct_answer:
-            self.logger.info(
-                chalk.yellow(
-                    f"Retrieving the cached response: '{question.correct_answer}'"
-                )
-            )
+            msg = f"Retrieving the cached response: '{question.correct_answer}'"
+            self.logger.info(chalk.yellow(msg))
             question.cache_used = True
             return question.correct_answer
 
         self.logger.debug(f'Answering : "{chalk.bold(question_str.strip())}"')
         self.logger.info("Waiting for OpenAI's response.")
         answer = get_answer(self.logger, self.activity.data, question_str)
-        self.logger.debug(f'OpenAI Completion responsed with : "{chalk.bold(answer)}"')
+        self.logger.debug(f'OpenAI Completion responded with : "{chalk.bold(answer)}"')
 
         return answer
 
     def handle_question(self):
-        """Handle a question."""
+        """Handle a question. Lo"""
         locator = SELECTORS["QUIZ"]["QUESTION"]
         self.scraper.wait_for_element(locator, "Page didn't load. (didn't found the quiz question)")
 
         question_el = self.scraper.driver.find_element(*locator)
         question = Question.from_element(self.logger, question_el)
+
+        question_str = question.as_text()
+
+        retrieved_question = self.activity.get_question(question_str)
+
+        if retrieved_question:
+            self.logger.info(chalk.bold(chalk.blue("Found a retrieved question, using it and replacing the element.")))
+            retrieved_question.element = question_el
+            retrieved_question.first_use = False
+            question = retrieved_question
 
         if not question:
             classes = question_el.get_attribute("class")
@@ -68,11 +75,7 @@ class ActivitySolving:
 
         self.logger.info(chalk.bold(chalk.cyan(f"Loaded question with type '{question.type}'")))
 
-        question_str = question.as_text()
-
-        answers = (
-            ["SKIP"] if question.skip_completion else self.get_answer(question_str)
-        )
+        answers = (["SKIP"] if question.skip_completion else self.get_answer(question_str))
 
         try:
             _value = answers[0]
@@ -83,7 +86,9 @@ class ActivitySolving:
             answers = []
 
         question.correct_answer = question.answer(answers)
-        self.activity.questions.append(question)
+
+        if question.first_use:
+            self.activity.questions.append(question)
 
     def retake_if_score_under(self, expected_score: int):
         """Click the retake button if the score is under the expected score"""
@@ -105,6 +110,9 @@ class ActivitySolving:
 
         has_all_cached_answers_been_used = bool(len(self.activity.questions)) and all(
             map(lambda q: q.cache_used, self.activity.questions))
+        self.logger.info(
+            chalk.bold(chalk.blue(f"Has all cached answers been used : {has_all_cached_answers_been_used}")))
+        print(list(map(lambda q: q.cache_used, self.activity.questions)))
 
         # In case something wrong happens and the cached answers are all used twice, we exit the resolving to avoid
         # infinite loops

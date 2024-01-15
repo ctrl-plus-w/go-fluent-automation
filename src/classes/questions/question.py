@@ -21,6 +21,7 @@ class Question:
         self.correct_answer = None
         self.skip_completion = False
         self.cache_used = False
+        self.first_use = True
 
     def get_correct_answer(self):
         """Return the value of the correct answer"""
@@ -83,9 +84,9 @@ class Question:
         otp_text_mult = "Question_output_text-multiple"
 
         if (
-            has_all_classes(["Question_type_multiple-choice", otp_text])
-            or has_all_classes(["Question_type_multiple-choice", otp_text_mult])
-            or has_all_classes(["Question_type_true-or-false", otp_text])
+                has_all_classes(["Question_type_multiple-choice", otp_text])
+                or has_all_classes(["Question_type_multiple-choice", otp_text_mult])
+                or has_all_classes(["Question_type_true-or-false", otp_text])
         ):
             m = otp_text_mult in curr_classes
             return MultiChoiceTextQuestion(logger, "Multiple choice text question", element, m)
