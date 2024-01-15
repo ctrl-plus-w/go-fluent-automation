@@ -48,8 +48,11 @@ class ScrambledLettersQuestion(Question):
             self.logger.debug("Did not found any random options.")
 
     def answer(self, values: str):
-        if len(values[0]) > 1:
-            values = list(values[0])
+        try:
+            if len(values[0]) > 1:
+                values = list(values[0])
+        except IndexError:
+            values = []
 
         values = _m(lambda l: l.upper(), values)
 
