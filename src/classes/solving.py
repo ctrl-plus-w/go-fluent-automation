@@ -112,7 +112,6 @@ class ActivitySolving:
             map(lambda q: q.cache_used, self.activity.questions))
         self.logger.info(
             chalk.bold(chalk.blue(f"Has all cached answers been used : {has_all_cached_answers_been_used}")))
-        print(list(map(lambda q: q.cache_used, self.activity.questions)))
 
         # In case something wrong happens and the cached answers are all used twice, we exit the resolving to avoid
         # infinite loops
