@@ -6,10 +6,11 @@ import sys
 class Logger:
     """Logging module"""
 
-    def __init__(self, name: str, filename: str):
+    def __init__(self, name: str, filename: str, debug_enabled: bool):
         self.name = name
         self.logger = logging.getLogger(name)
         self.filename = filename
+        self.debug_enabled = debug_enabled
 
         self.setup()
 
@@ -39,7 +40,7 @@ class Logger:
         std_handler.setFormatter(std_formatter)
         std_handler.setLevel(logging.INFO)
 
-        if "--debug" in sys.argv:
+        if self.debug_enabled:
             std_handler.setLevel(logging.DEBUG)
 
         handlers = [std_handler, file_handler]

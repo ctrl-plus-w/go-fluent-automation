@@ -34,8 +34,10 @@ def logged_in(func):
 class Scraper:
     """Scrapper class"""
 
-    def __init__(self, logger: Logger):
+    def __init__(self, logger: Logger, is_headless: bool):
         self.logger = logger
+        self.is_headless = is_headless
+        self.driver: Optional[Firefox] = None
 
         self.setup_session()
 
@@ -54,22 +56,18 @@ class Scraper:
         """Initialize the driver"""
         self.logger.info("Initializing the scraper.")
 
-        headless = "--headless" in sys.argv
-        prod = "--prod" in sys.argv
+        options = Options()
 
-        opts = Options()
-        servs = Service()
+        # if prod:
+        #     options.add_argument("--disable-dev-shm-usage")
 
-        if prod:
-            opts.add_argument("--disable-dev-shm-usage")
-
-        if headless:
-            opts.add_argument("--no-sandbox")
-            opts.add_argument("--headless")
-            opts.headless = True
+        if self.is_headless:
+            options.add_argument("--no-sandbox")
+            options.add_argument("--headless")
+            options.headless = True
 
         self.logger.debug("Creating the driver.")
-        self.driver = Firefox(options=opts, service=servs)
+        self.driver = Firefox(options=options)
 
         self.driver.maximize_window()
 
@@ -259,22 +257,13 @@ class Scraper:
         return activities
 
     @logged_in
-    def retrieve_activities(self, count=10) -> list[Activity]:
+    def retrieve_activities(self, is_vocabulary: bool, count=10) -> list[Activity]:
         """Retrieve n activities from the go-fluent portal (where n = count)"""
-        is_voca = "--vocabulary" in sys.argv
-        is_gram = "--grammar" in sys.argv
-
-        if not (is_voca or is_gram):
-            raise ValueError(
-                "One of the params --grammar or --vocabulary must be specified."
-            )
-
         url = ""
 
-        if is_voca:
+        if is_vocabulary:
             url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary"
-
-        if is_gram:
+        else:
             url = "https://portal.gofluent.com/app/dashboard/resources/grammar"
 
         if self.driver.current_url != url:
