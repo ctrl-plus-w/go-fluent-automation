@@ -6,7 +6,6 @@ from typing import Tuple, Optional
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,7 +14,6 @@ from src.classes.activity import Activity
 from src.classes.learning import ActivityLearning
 from src.classes.logger import Logger
 from src.classes.solving import ActivitySolving
-from src.constants.credentials import USERNAME, PASSWORD
 from src.constants.selectors import SELECTORS
 from src.utils.lists import _m
 from src.utils.parser import get_urls_from_activities_container, get_date_from_str
@@ -34,10 +32,12 @@ def logged_in(func):
 class Scraper:
     """Scrapper class"""
 
-    def __init__(self, logger: Logger, is_headless: bool):
-        self.logger = logger
-        self.is_headless = is_headless
+    def __init__(self, logger: Logger, is_headless: bool, username: str, password: str):
         self.driver: Optional[Firefox] = None
+        self.is_headless = is_headless
+        self.username = username
+        self.password = password
+        self.logger = logger
 
         self.setup_session()
 
@@ -107,8 +107,8 @@ class Scraper:
         submit_button = self.driver.find_element(*SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
 
         # Fill and send the login form
-        user_input.send_keys(USERNAME)
-        password_input.send_keys(PASSWORD)
+        user_input.send_keys(self.username)
+        password_input.send_keys(self.password)
         submit_button.click()
 
         if self.are_credentials_invalid():

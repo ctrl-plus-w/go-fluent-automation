@@ -7,9 +7,11 @@ from src.classes.logger import Logger
 
 
 class SimpleRun:
-    def __init__(self, logger: Logger, url: str, is_headless: bool):
-        self.logger = logger
+    def __init__(self, logger: Logger, url: str, is_headless: bool, username: str, password: str):
         self.is_headless = is_headless
+        self.username = username
+        self.password = password
+        self.logger = logger
         self.url = url
 
     def execute(self):
@@ -20,7 +22,8 @@ class SimpleRun:
             self.logger.info(f"{chalk.bold(chalk.yellow('!'))} L'URL est invalide.")
             return
 
-        scraper = Scraper(logger=self.logger, is_headless=self.is_headless)
+        scraper = Scraper(logger=self.logger, is_headless=self.is_headless, username=self.username,
+                          password=self.password)
         activity = Activity(self.url)
 
         scraper.do_activity(activity)

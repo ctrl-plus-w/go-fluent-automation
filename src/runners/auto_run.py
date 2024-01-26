@@ -7,16 +7,20 @@ from src.classes.logger import Logger
 
 
 class AutoRun:
-    def __init__(self, logger: Logger, auto_run_count: int, is_vocabulary: bool, is_headless: bool):
+    def __init__(self, logger: Logger, auto_run_count: int, is_vocabulary: bool, is_headless: bool, username: str,
+                 password: str):
         self.auto_run_count = auto_run_count
         self.is_vocabulary = is_vocabulary
         self.is_headless = is_headless
+        self.username = username
+        self.password = password
         self.logger = logger
 
     def execute(self):
         """Auto-run method, retrieving the auto-run count property from the cli, retrieving the amount of done activities,
             retrieving some activities to do and then solving the activities"""
-        scraper = Scraper(logger=self.logger, is_headless=self.is_headless)
+        scraper = Scraper(logger=self.logger, is_headless=self.is_headless, username=self.username,
+                          password=self.password)
 
         self.logger.info("Retrieving the count of done activities for this month.")
         done_activities = scraper.retrieved_done_activities()

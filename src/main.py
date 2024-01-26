@@ -1,10 +1,13 @@
 """Main"""
 import argparse
+import os
+
 import chalk
 import sys
 import re
 
 from datetime import datetime
+from typing import Optional
 
 from src.classes.logger import Logger
 
@@ -44,6 +47,9 @@ def get_parser():
                         help="Run the firefox instance in headless mode (meaning the window won't show).",
                         action=argparse.BooleanOptionalAction)
 
+    parser.add_argument('--profile', default=None, required=False,
+                        help="The name of the credentials profile stored in the .env file.")
+
     return parser
 
 
@@ -57,6 +63,23 @@ def get_logger(is_debug: bool):
     return Logger("MAIN", f"{logs_directory}/logs.txt", is_debug)
 
 
+def get_credentials(logger: Logger, profile: Optional[str]):
+    suffix = '' if profile is None else f'__{profile.upper()}'
+
+    username_key = f'GOFLUENT_USERNAME{suffix}'
+    password_key = f'GOFLUENT_PASSWORD{suffix}'
+
+    username = os.getenv(username_key)
+    password = os.getenv(password_key)
+
+    if username is None or password is None:
+        msg = (f"No profile found with the specified profile mathing the following keys : '{username_key}' and"
+               f" '{password_key}. Please defined the two keys as strings.")
+        logger.error(chalk.bold(chalk.red(msg)))
+
+    return username, password
+
+
 def main():
     """Main method, creating the logs directory for the app instance and running either the CLI or the autorun."""
     parser = get_parser()
@@ -64,17 +87,27 @@ def main():
 
     logger = get_logger(args.debug)
 
+    username, password = get_credentials(logger, args.profile)
+
     try:
         if 'auto_run_count' in args:
             runner = AutoRun(
                 logger=logger,
                 auto_run_count=args.auto_run_count,
                 is_vocabulary=args.vocabulary,
-                is_headless=args.headless
+                is_headless=args.headless,
+                username=username,
+                password=password
             )
             runner.execute()
         else:
-            runner = SimpleRun(logger=logger, url=args.url, is_headless=args.headless)
+            runner = SimpleRun(
+                logger=logger,
+                url=args.url,
+                is_headless=args.headless,
+                username=username,
+                password=password
+            )
             runner.execute()
     except KeyboardInterrupt:
         logger.error(chalk.bold(chalk.red("The program has been stopped by the keyboard.")))
