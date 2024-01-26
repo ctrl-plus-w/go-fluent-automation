@@ -19,7 +19,8 @@ from src.utils.fs import create_directory
 
 def get_parser():
     """Generate and return the CLI parser."""
-    parser = argparse.ArgumentParser(description="automatically execute some go fluent activities.")
+    parser = argparse.ArgumentParser(description="automatically execute some go fluent activities.",
+                                     prog="python3 -m src.main")
 
     # Group1 - Auto-run or simple-run parameters
     group1 = parser.add_mutually_exclusive_group(required=True)
