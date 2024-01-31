@@ -8,7 +8,7 @@ def remove_quote(txt: str):
 
 def escape(txt: str):
     """Escape a string"""
-    return txt.translate(
+    return str(txt).translate(
         str.maketrans(
             {
                 '"': "",
