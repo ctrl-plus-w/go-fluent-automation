@@ -1,4 +1,6 @@
 # Other
+*.DS_Store
+.idea
 bin
 .VSCodeCounter
 logs
