@@ -77,6 +77,7 @@ def get_credentials(logger: Logger, profile: Optional[str]):
         msg = (f"No profile found with the specified profile mathing the following keys : '{username_key}' and"
                f" '{password_key}. Please defined the two keys as strings.")
         logger.error(chalk.bold(chalk.red(msg)))
+        sys.exit()
 
     return username, password
 
