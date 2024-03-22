@@ -109,7 +109,7 @@ class ActivitySolving:
         self.scraper.wait_for_element(SELECTORS["QUIZ"]["CONTAINER"], "Failed to load the quiz container.")
 
         has_all_cached_answers_been_used = bool(len(self.activity.questions)) and all(
-            map(lambda q: q.cache_used, self.activity.questions))
+            map(lambda q: q.cache_used or q.skip_completion, self.activity.questions))
         self.logger.info(
             chalk.bold(chalk.blue(f"Has all cached answers been used : {has_all_cached_answers_been_used}")))
 
