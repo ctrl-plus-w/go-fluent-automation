@@ -92,7 +92,7 @@ def main():
     username, password = get_credentials(logger, args.profile)
 
     try:
-        if 'auto_run_count' in args:
+        if not (args.auto_run_count is None):
             runner = AutoRun(
                 logger=logger,
                 auto_run_count=args.auto_run_count,
