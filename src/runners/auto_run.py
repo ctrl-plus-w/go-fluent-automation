@@ -1,9 +1,10 @@
 import chalk
 import sys
 
-from src.utils.date import is_current_month
 from src.classes.scraper import Scraper
 from src.classes.logger import Logger
+
+from src.utils.date import is_current_month_and_year
 
 
 class AutoRun:
@@ -24,7 +25,7 @@ class AutoRun:
 
         self.logger.info("Retrieving the count of done activities for this month.")
         done_activities = scraper.retrieved_done_activities()
-        monthly_done_activities = list(filter(lambda a: a.date and is_current_month(a.date), done_activities))
+        monthly_done_activities = list(filter(lambda a: a.date and is_current_month_and_year(a.date), done_activities))
         monthly_done_activities_count = len(monthly_done_activities)
         self.logger.info(f"You have done {monthly_done_activities_count} activities this month.")
 
