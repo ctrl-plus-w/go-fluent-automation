@@ -255,9 +255,24 @@ class Scraper:
             button.click()
 
         return activities
+    
+    @logged_in
+    def check_activity_validity(activity: Activity):
+        """
+        Check if activity validity (trying to load the activity data, if an error is throw, the activity isn't valid)
+        """
+        try:
+            learning = ActivityLearning(self.logger, self, activity)
+            learning.retrieve_activity_data()
+
+            activity.valid = True
+        except:
+            activity.valid = False
+        
+        return activity.valid
 
     @logged_in
-    def retrieve_activities(self, is_vocabulary: bool, count=10) -> list[Activity]:
+    def retrieve_activities(self, is_vocabulary: bool, count=10, cached_activites: List[Activity] = []) -> list[Activity]:
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
 
@@ -274,9 +289,22 @@ class Scraper:
         activities_container = self.driver.find_element(*locator)
 
         html = activities_container.get_attribute("outerHTML")
-        activities_urls = get_urls_from_activities_container(html)
+        cached_activities_url = list(map(lambda activity: activity.url, cached_activites))
 
-        if len(activities_urls) < count:
+        activities_urls = get_urls_from_activities_container(html)
+        activities_urls = list(filter(lambda url: not (url in cached_activities_url), activities_urls)
+
+        activities = list(map(lambda url: Activity(url), activities_urls))
+        valid_activities = []
+
+        for activity in activities:
+            if activity.valid != None:
+                continue
+
+            if self.check_activity_validity(activity):
+                valid_activities.append(activity)
+
+        if len(valid_activities) < count:
             script = """
             const element1 = document.querySelector('.browse-all-activities .rcs-inner-container');
             element1.scrollTo({ top: element1.scrollTopMax });
@@ -286,7 +314,7 @@ class Scraper:
 
             sleep(1)
 
-            return self.retrieve_activities(count)
+            return self.retrieve_activities(count, activities)
 
         self.logger.info(f"Retrieved {len(activities_urls)}. Keeping {count}.")
-        return _m(Activity, activities_urls)[:count]
+        return valid_activities[:count]

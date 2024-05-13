@@ -13,6 +13,7 @@ class Activity:
         self.date = date
         self.data = []
         self.questions: list[Question] = []
+        self.valid = None
 
     def get_question(self, question_str: str):
         """Get the question by its question as string"""
