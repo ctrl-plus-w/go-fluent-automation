@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from src.classes.activity import Activity
 from src.classes.learning import ActivityLearning
-from src.classes.logger import Logger
+from src.classes.logger import Logger, VoidLogger
 from src.classes.solving import ActivitySolving
 from src.constants.selectors import SELECTORS
 from src.utils.lists import _m
@@ -270,7 +270,7 @@ class Scraper:
         Check if activity validity (trying to load the activity data, if an error is throw, the activity isn't valid)
         """
         try:
-            learning = ActivityLearning(self.logger, self, activity)
+            learning = ActivityLearning(VoidLogger(), self, activity)
             learning.retrieve_activity_data()
 
             activity.valid = True
@@ -280,7 +280,7 @@ class Scraper:
         return activity.valid
 
     @logged_in
-    def retrieve_activities(self, is_vocabulary: bool, count=10, cached_activites: list[Activity] = []) -> list[Activity]:
+    def retrieve_activities(self, is_vocabulary: bool, count=10, cached_activites: list[Activity] = [], scroll_count = 1) -> list[Activity]:
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
 
@@ -309,11 +309,10 @@ class Scraper:
         valid_activities = []
 
         for activity in activities:
-            if activity.valid != None:
-                continue
-
-            if self.check_activity_validity(activity):
-                valid_activities.append(activity)
+            if activity.valid == None:
+                self.check_activity_validity(activity)
+            
+            valid_activities.append(activity)
 
         if len(valid_activities) < count:
             script = """
@@ -321,11 +320,13 @@ class Scraper:
             element1.scrollTo({ top: element1.scrollTopMax });
             """
 
-            self.driver.execute_script(script)
+            for _ in range(scroll_count):
+                self.driver.execute_script(script)
+                sleep(0.2)
 
-            sleep(1)
+            sleep(0.8)
 
-            return self.retrieve_activities(is_vocabulary, count, activities)
+            return self.retrieve_activities(is_vocabulary, count, activities, scroll_count + 1)
 
         self.logger.info(f"Retrieved {len(activities_urls)}. Keeping {count}.")
         return valid_activities[:count]

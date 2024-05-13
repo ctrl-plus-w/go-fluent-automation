@@ -1,9 +1,9 @@
 """Scraper handler section for the activity tab"""
 
 from typing import TYPE_CHECKING
-from logging import Logger
 
 from src.classes.activity import Activity
+from src.classes.activity import Logger
 
 from src.utils.parser import get_data_from_section
 

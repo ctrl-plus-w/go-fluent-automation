@@ -49,3 +49,23 @@ class Logger:
             self.logger.addHandler(handler)
 
         self.logger.propagate = False
+
+
+class VoidLogger(Logger):
+    """Void Logging module"""
+
+    def info(self, message: str):
+        """Log an info message"""
+        return
+
+    def debug(self, message: str):
+        """Log a debug message"""
+        return
+
+    def error(self, message: str):
+        """Log an error message"""
+        return
+
+    def setup(self):
+        """Setup the logger with the handlers and the formatter"""
+        return
