@@ -78,7 +78,8 @@ class Scraper:
     def are_credentials_invalid(self):
         """Check if the feedback block is shown"""
         try:
-            self.wait_for_element(SELECTORS["LOGIN"]["FEEDBACK"], "Invalid", timeout=2)
+            self.wait_for_element(
+                SELECTORS["LOGIN"]["FEEDBACK"], "Invalid", timeout=2)
             return True
         except TimeoutException:
             return False
@@ -102,9 +103,12 @@ class Scraper:
 
         self.driver.get("https://portal.gofluent.com/app/login")
 
-        user_input = self.driver.find_element(*SELECTORS["LOGIN"]["USERNAME_INPUT"])
-        password_input = self.driver.find_element(*SELECTORS["LOGIN"]["PASSWORD_INPUT"])
-        submit_button = self.driver.find_element(*SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
+        user_input = self.driver.find_element(
+            *SELECTORS["LOGIN"]["USERNAME_INPUT"])
+        password_input = self.driver.find_element(
+            *SELECTORS["LOGIN"]["PASSWORD_INPUT"])
+        submit_button = self.driver.find_element(
+            *SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
 
         # Fill and send the login form
         user_input.send_keys(self.username)
@@ -136,7 +140,8 @@ class Scraper:
 
         locator = SELECTORS["NAV"][tab]
 
-        self.wait_for_element(locator, "Page didn't load. (didn't found the nav tab)", 5)
+        self.wait_for_element(
+            locator, "Page didn't load. (didn't found the nav tab)", 5)
 
         button = self.driver.find_element(*locator)
         button.click()
@@ -160,7 +165,8 @@ class Scraper:
 
         # Wait for the page to load
         locator = SELECTORS["NAV"]["CONTAINER"]
-        self.wait_for_element(locator, "Page didn't load. (didn't found the navs container)")
+        self.wait_for_element(
+            locator, "Page didn't load. (didn't found the navs container)")
         self.logger.debug("Page successfully loaded")
 
         self.select_tab(tab)
@@ -226,7 +232,8 @@ class Scraper:
 
         for block_card in block_cards:
             locator = SELECTORS["TRAINING"]["BLOCK_CARD_LINK"]
-            url = f"https://portal.gofluent.com{block_card.find_element(*locator).get_attribute('href')}"
+            url = f"https://portal.gofluent.com{
+                block_card.find_element(*locator).get_attribute('href')}"
             activities.append(Activity(url, date))
 
         return activities
@@ -239,7 +246,8 @@ class Scraper:
             self.driver.get(url)
 
         locator = SELECTORS["TRAINING"]["CONTAINER"]
-        self.wait_for_element(locator, "Page didn't load. (didn't found the training container)")
+        self.wait_for_element(
+            locator, "Page didn't load. (didn't found the training container)")
 
         activities = []
 
@@ -255,9 +263,9 @@ class Scraper:
             button.click()
 
         return activities
-    
+
     @logged_in
-    def check_activity_validity(activity: Activity):
+    def check_activity_validity(self, activity: Activity):
         """
         Check if activity validity (trying to load the activity data, if an error is throw, the activity isn't valid)
         """
@@ -268,11 +276,11 @@ class Scraper:
             activity.valid = True
         except:
             activity.valid = False
-        
+
         return activity.valid
 
     @logged_in
-    def retrieve_activities(self, is_vocabulary: bool, count=10, cached_activites: List[Activity] = []) -> list[Activity]:
+    def retrieve_activities(self, is_vocabulary: bool, count=10, cached_activites: list[Activity] = []) -> list[Activity]:
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
 
@@ -285,14 +293,17 @@ class Scraper:
             self.driver.get(url)
 
         locator = SELECTORS["VOCABULARY"]["ACTIVITIES_LIST"]
-        self.wait_for_element(locator, "Page didn't load. (didn't found the activities list container)")
+        self.wait_for_element(
+            locator, "Page didn't load. (didn't found the activities list container)")
         activities_container = self.driver.find_element(*locator)
 
         html = activities_container.get_attribute("outerHTML")
-        cached_activities_url = list(map(lambda activity: activity.url, cached_activites))
+        cached_activities_url = list(
+            map(lambda activity: activity.url, cached_activites))
 
         activities_urls = get_urls_from_activities_container(html)
-        activities_urls = list(filter(lambda url: not (url in cached_activities_url), activities_urls)
+        activities_urls = list(filter(lambda url: not (
+            url in cached_activities_url), activities_urls))
 
         activities = list(map(lambda url: Activity(url), activities_urls))
         valid_activities = []
@@ -314,7 +325,7 @@ class Scraper:
 
             sleep(1)
 
-            return self.retrieve_activities(count, activities)
+            return self.retrieve_activities(is_vocabulary, count, activities)
 
         self.logger.info(f"Retrieved {len(activities_urls)}. Keeping {count}.")
         return valid_activities[:count]
