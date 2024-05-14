@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from src.classes.activity import Activity
-from src.classes.activity import Logger
+from src.classes.logger import Logger
 
 from src.utils.parser import get_data_from_section
 
