@@ -232,8 +232,7 @@ class Scraper:
 
         for block_card in block_cards:
             locator = SELECTORS["TRAINING"]["BLOCK_CARD_LINK"]
-            url = f"https://portal.gofluent.com{
-                block_card.find_element(*locator).get_attribute('href')}"
+            url = f"https://portal.gofluent.com{block_card.find_element(*locator).get_attribute('href')}"
             activities.append(Activity(url, date))
 
         return activities
