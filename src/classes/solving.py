@@ -1,6 +1,5 @@
 """Scraper handler section for the quiz tab"""
 from selenium.common.exceptions import TimeoutException
-from logging import Logger
 from typing import TYPE_CHECKING
 
 import sys
@@ -8,6 +7,7 @@ import chalk
 
 from src.classes.questions.question import Question
 from src.classes.activity import Activity
+from src.classes.logger import Logger
 
 from src.utils.ai import get_answer
 
