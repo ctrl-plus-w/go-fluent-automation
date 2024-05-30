@@ -1,4 +1,5 @@
 """Scraper handler section for the quiz tab"""
+
 from selenium.common.exceptions import TimeoutException
 from typing import TYPE_CHECKING
 
@@ -51,7 +52,9 @@ class ActivitySolving:
     def handle_question(self):
         """Handle a question. Lo"""
         locator = SELECTORS["QUIZ"]["QUESTION"]
-        self.scraper.wait_for_element(locator, "Page didn't load. (didn't found the quiz question)")
+        self.scraper.wait_for_element(
+            locator, "Page didn't load. (didn't found the quiz question)"
+        )
 
         question_el = self.scraper.driver.find_element(*locator)
         question = Question.from_element(self.logger, question_el)
@@ -61,7 +64,13 @@ class ActivitySolving:
         retrieved_question = self.activity.get_question(question_str)
 
         if retrieved_question:
-            self.logger.info(chalk.bold(chalk.blue("Found a retrieved question, using it and replacing the element.")))
+            self.logger.info(
+                chalk.bold(
+                    chalk.blue(
+                        "Found a retrieved question, using it and replacing the element."
+                    )
+                )
+            )
             retrieved_question.element = question_el
             retrieved_question.first_use = False
             question = retrieved_question
@@ -73,9 +82,13 @@ class ActivitySolving:
             )
             sys.exit()
 
-        self.logger.info(chalk.bold(chalk.cyan(f"Loaded question with type '{question.type}'")))
+        self.logger.info(
+            chalk.bold(chalk.cyan(f"Loaded question with type '{question.type}'"))
+        )
 
-        answers = (["SKIP"] if question.skip_completion else self.get_answer(question_str))
+        answers = (
+            ["SKIP"] if question.skip_completion else self.get_answer(question_str)
+        )
 
         try:
             _value = answers[0]
@@ -106,19 +119,27 @@ class ActivitySolving:
         self.logger.info("Resolving the quiz...")
 
         self.scraper.load_activity_page_and_tab(self.activity, "QUIZ_TAB")
-        self.scraper.wait_for_element(SELECTORS["QUIZ"]["CONTAINER"], "Failed to load the quiz container.")
+        self.scraper.wait_for_element(
+            SELECTORS["QUIZ"]["CONTAINER"], "Failed to load the quiz container."
+        )
 
         has_all_cached_answers_been_used = bool(len(self.activity.questions)) and all(
-            map(lambda q: q.cache_used or q.skip_completion, self.activity.questions))
+            map(lambda q: q.cache_used or q.skip_completion, self.activity.questions)
+        )
         self.logger.info(
-            chalk.bold(chalk.blue(f"Has all cached answers been used : {has_all_cached_answers_been_used}")))
+            chalk.bold(
+                chalk.blue(
+                    f"Has all cached answers been used : {has_all_cached_answers_been_used}"
+                )
+            )
+        )
 
         # In case something wrong happens and the cached answers are all used twice, we exit the resolving to avoid
         # infinite loops
         if has_all_cached_answers_been_used:
             msg = f"All questions have been used and it's trying to retake the quiz. Skipping. "
             self.logger.info(chalk.bold(chalk.yellow(msg)))
-            return
+            return len(self.activity.questions)  # return the count of activities done
 
         while not self.scraper.is_finished():
             self.handle_question()
@@ -130,3 +151,4 @@ class ActivitySolving:
         self.logger.info(chalk.bold(chalk.red(msg)))
 
         self.retake_if_score_under(100)
+        return len(self.activity.questions)  # return the count of activities done

@@ -1,7 +1,10 @@
 """Selenium scrapper"""
-import sys
 from time import sleep
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Callable
+
+import sys
+import chalk
+
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver import Firefox
@@ -42,15 +45,18 @@ class Scraper:
         self.setup_session()
 
     def wait_for_element(
-            self,
-            locator: Tuple[str, str],
-            message: str,
-            timeout: int = 15,
-            to_be_clickable: bool = False,
+        self,
+        locator: Tuple[str, str],
+        message: str,
+        timeout: int = 15,
+        to_be_clickable: bool = False,
     ):
         """Wait for an element to be visible by the driver"""
-        fn = expected_conditions.element_to_be_clickable if to_be_clickable \
+        fn = (
+            expected_conditions.element_to_be_clickable
+            if to_be_clickable
             else expected_conditions.visibility_of_element_located
+        )
 
         WebDriverWait(self.driver, timeout).until(fn(locator), message)
 
@@ -80,8 +86,7 @@ class Scraper:
     def are_credentials_invalid(self):
         """Check if the feedback block is shown"""
         try:
-            self.wait_for_element(
-                SELECTORS["LOGIN"]["FEEDBACK"], "Invalid", timeout=2)
+            self.wait_for_element(SELECTORS["LOGIN"]["FEEDBACK"], "Invalid", timeout=2)
             return True
         except TimeoutException:
             return False
@@ -105,12 +110,9 @@ class Scraper:
 
         self.driver.get("https://portal.gofluent.com/app/login")
 
-        user_input = self.driver.find_element(
-            *SELECTORS["LOGIN"]["USERNAME_INPUT"])
-        password_input = self.driver.find_element(
-            *SELECTORS["LOGIN"]["PASSWORD_INPUT"])
-        submit_button = self.driver.find_element(
-            *SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
+        user_input = self.driver.find_element(*SELECTORS["LOGIN"]["USERNAME_INPUT"])
+        password_input = self.driver.find_element(*SELECTORS["LOGIN"]["PASSWORD_INPUT"])
+        submit_button = self.driver.find_element(*SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
 
         # Fill and send the login form
         user_input.send_keys(self.username)
@@ -126,8 +128,10 @@ class Scraper:
         self.close_modal_if_exists()
 
         # Wait for the next page to load (checking the top left logo)
-        self.wait_for_element(SELECTORS["DASHBOARD"]["LOGO"],
-                              "User is not logged in. (did not found the dashboard logo)")
+        self.wait_for_element(
+            SELECTORS["DASHBOARD"]["LOGO"],
+            "User is not logged in. (did not found the dashboard logo)",
+        )
 
         # If the redirected page is not the expected url, redirect
         if redirect and self.driver.current_url != redirect:
@@ -142,20 +146,14 @@ class Scraper:
 
         locator = SELECTORS["NAV"][tab]
 
-        self.wait_for_element(locator, "Page didn't load. (didn't found the nav tab)", 5)
+        self.wait_for_element(
+            locator, "Page didn't load. (didn't found the nav tab)", 5
+        )
 
         button = self.driver.find_element(*locator)
         button.click()
 
         self.logger.debug(f"Switched to the {tab}.")
-
-    def select_learning_tab(self):
-        """Switch to the learning tab"""
-        self.select_tab("LEARNING_TAB")
-
-    def select_quiz_tab(self):
-        """Switch to the quiz tab"""
-        self.select_tab("QUIZ_TAB")
 
     @logged_in
     def load_activity_page_and_tab(self, activity: Activity, tab: str):
@@ -167,7 +165,8 @@ class Scraper:
         # Wait for the page to load
         locator = SELECTORS["NAV"]["CONTAINER"]
         self.wait_for_element(
-            locator, "Page didn't load. (didn't found the navs container)")
+            locator, "Page didn't load. (didn't found the navs container)"
+        )
         self.logger.debug("Page successfully loaded")
 
         self.select_tab(tab)
@@ -247,7 +246,8 @@ class Scraper:
 
         locator = SELECTORS["TRAINING"]["CONTAINER"]
         self.wait_for_element(
-            locator, "Page didn't load. (didn't found the training container)")
+            locator, "Page didn't load. (didn't found the training container)"
+        )
 
         activities = []
 
@@ -266,22 +266,36 @@ class Scraper:
         return activities
 
     @logged_in
-    def check_activity_validity(self, activity: Activity):
+    def try_solving_and_set_validity(self, activity: Activity):
         """
         Check if activity validity (trying to load the activity data, if an error is throw, the activity isn't valid)
         """
         try:
-            learning = ActivityLearning(VoidLogger(), self, activity)
+            msg = f"\nStarting the activity with url : '{activity.url}'"
+            self.logger.info(chalk.bold(chalk.cyan(msg)))
+
+            learning = ActivityLearning(self.logger, self, activity)
             learning.retrieve_activity_data()
 
-            activity.valid = True
-        except:
+            solving = ActivitySolving(self.logger, self, activity)
+            activities_done_count = solving.resolve_quiz()
+
+            activity.valid = True if activities_done_count > 0 else False
+        except Exception as e:
             activity.valid = False
 
+        msg = "Activity already done." if not activity.valid else "Activity done !"
+        self.logger.info(chalk.bold(chalk.red(msg)))
         return activity.valid
 
     @logged_in
-    def retrieve_activities(self, is_vocabulary: bool, count=10, cached_activites: list[Activity] = [], scroll_count = 1) -> list[Activity]:
+    def retrieve_and_do_activities(
+        self,
+        is_vocabulary: bool,
+        count=10,
+        cached_activities: list[Activity] = [],
+        scroll_count=1,
+    ) -> list[Activity]:
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
 
@@ -295,27 +309,40 @@ class Scraper:
 
         locator = SELECTORS["VOCABULARY"]["ACTIVITIES_LIST"]
         self.wait_for_element(
-            locator, "Page didn't load. (didn't found the activities list container)")
+            locator, "Page didn't load. (didn't found the activities list container)"
+        )
         activities_container = self.driver.find_element(*locator)
 
         html = activities_container.get_attribute("outerHTML")
         cached_activities_url = list(
-            map(lambda activity: activity.url, cached_activites))
+            map(lambda activity1: activity1.url, cached_activities)
+        )
 
         activities_urls = get_urls_from_activities_container(html)
-        activities_urls = list(filter(lambda url: not (
-            url in cached_activities_url), activities_urls))
+        activities_urls = list(
+            filter(lambda url1: not (url1 in cached_activities_url), activities_urls)
+        )
 
-        activities = list(map(lambda url: Activity(url), activities_urls))
-        valid_activities = []
+        activities = list(map(lambda url1: Activity(url1), activities_urls))
+        done_activities = []
+
+        get_done_valid_activities_count: Callable[[], int] = lambda: len(
+            list(
+                filter(
+                    lambda activity1: activity1.valid,
+                    done_activities + cached_activities,
+                )
+            )
+        )
 
         for activity in activities:
-            if activity.valid == None:
-                self.check_activity_validity(activity)
-            
-            valid_activities.append(activity)
+            self.try_solving_and_set_validity(activity)
+            done_activities.append(activity)
 
-        if len(valid_activities) < count:
+            msg = f"Done {get_done_valid_activities_count()}/{count} activities."
+            self.logger.info(chalk.bold(chalk.green(msg)))
+
+        if get_done_valid_activities_count() < count:
             script = """
             const element1 = document.querySelector('.browse-all-activities .rcs-inner-container');
             element1.scrollTo({ top: element1.scrollTopMax });
@@ -327,7 +354,9 @@ class Scraper:
 
             sleep(0.8)
 
-            return self.retrieve_activities(is_vocabulary, count, activities, scroll_count + 1)
-
-        self.logger.info(f"Retrieved {len(activities_urls)}. Keeping {count}.")
-        return valid_activities[:count]
+            return self.retrieve_and_do_activities(
+                is_vocabulary,
+                count,
+                activities,
+                scroll_count + 1,
+            )
