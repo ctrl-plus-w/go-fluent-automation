@@ -54,6 +54,10 @@ class Logger:
 class VoidLogger(Logger):
     """Void Logging module"""
 
+    def __init__(self):
+        super().__init__("", "", False)
+        return
+
     def info(self, message: str):
         """Log an info message"""
         return
