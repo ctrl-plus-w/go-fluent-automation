@@ -46,11 +46,13 @@ class Scraper:
             locator: Tuple[str, str],
             message: str,
             timeout: int = 15,
+            to_be_clickable: bool = False,
     ):
         """Wait for an element to be visible by the driver"""
-        WebDriverWait(self.driver, timeout).until(
-            expected_conditions.visibility_of_element_located(locator), message
-        )
+        fn = expected_conditions.element_to_be_clickable if to_be_clickable \
+            else expected_conditions.visibility_of_element_located
+
+        WebDriverWait(self.driver, timeout).until(fn(locator), message)
 
     def setup_session(self):
         """Initialize the driver"""
@@ -140,8 +142,7 @@ class Scraper:
 
         locator = SELECTORS["NAV"][tab]
 
-        self.wait_for_element(
-            locator, "Page didn't load. (didn't found the nav tab)", 5)
+        self.wait_for_element(locator, "Page didn't load. (didn't found the nav tab)", 5)
 
         button = self.driver.find_element(*locator)
         button.click()
@@ -259,7 +260,8 @@ class Scraper:
                 activities += _activities
 
             button = self.get_next_page_button()
-            button.click()
+            # Do not use the selenium `Element.click()` method (doesn't work)
+            self.driver.execute_script("arguments[0].click();", button)
 
         return activities
 

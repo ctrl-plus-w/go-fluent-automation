@@ -5,15 +5,15 @@ SELECTORS = {
     "LOGIN": {
         "USERNAME_INPUT": (
             By.XPATH,
-            "/html/body/div/main/div[2]/div/div/div/div/div/div/div/div[1]/form/div/input[1]",
+            '//*[@id="mui-1"]',
         ),
         "PASSWORD_INPUT": (
             By.XPATH,
-            "/html/body/div/main/div[2]/div/div/div/div/div/div/div/div[1]/form/div/input[2]",
+            '//*[@id="outlined-adornment-password"]',
         ),
         "SUBMIT_BUTTON": (
             By.XPATH,
-            "/html/body/div/main/div[2]/div/div/div/div/div/div/div/div[1]/form/div/button",
+            '/html/body/div/div/div/div/div[2]/form/div/div[4]/button',
         ),
         "FEEDBACK": (
             By.CSS_SELECTOR,
