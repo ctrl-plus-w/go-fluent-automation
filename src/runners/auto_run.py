@@ -1,10 +1,10 @@
-import chalk
 import sys
 
 from src.classes.scraper import Scraper
 from src.classes.logger import Logger
 
 from src.utils.date import is_current_month_and_year
+from src.utils.cache import add_to_cache
 
 
 class AutoRun:
@@ -16,6 +16,7 @@ class AutoRun:
         is_headless: bool,
         username: str,
         password: str,
+        cache: bool,
     ):
         self.auto_run_count = auto_run_count
         self.is_vocabulary = is_vocabulary
@@ -23,6 +24,7 @@ class AutoRun:
         self.username = username
         self.password = password
         self.logger = logger
+        self.cache = cache
 
     def execute(self):
         """Auto-run method, retrieving the auto-run count property from the cli, retrieving the amount of done activities,
@@ -32,11 +34,16 @@ class AutoRun:
             is_headless=self.is_headless,
             username=self.username,
             password=self.password,
+            cache=self.cache,
         )
 
         self.logger.info("Retrieving the count of done activities for this month.")
 
         done_activities = scraper.retrieved_done_activities()
+
+        if self.cache:
+            add_to_cache(list(map(lambda act: act.url, done_activities)))
+
         monthly_done_activities = list(
             filter(
                 lambda a: a.date and is_current_month_and_year(a.date), done_activities

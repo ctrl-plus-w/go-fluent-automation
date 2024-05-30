@@ -1,4 +1,5 @@
 """Selenium scrapper"""
+
 from time import sleep
 from typing import Tuple, Optional, Callable
 
@@ -15,11 +16,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from src.classes.activity import Activity
 from src.classes.learning import ActivityLearning
-from src.classes.logger import Logger, VoidLogger
+from src.classes.logger import Logger
 from src.classes.solving import ActivitySolving
-from src.constants.selectors import SELECTORS
-from src.utils.lists import _m
+
 from src.utils.parser import get_urls_from_activities_container, get_date_from_str
+from src.utils.cache import add_to_cache, is_in_cache
+
+from src.constants.selectors import SELECTORS
 
 
 def logged_in(func):
@@ -35,12 +38,20 @@ def logged_in(func):
 class Scraper:
     """Scrapper class"""
 
-    def __init__(self, logger: Logger, is_headless: bool, username: str, password: str):
+    def __init__(
+        self,
+        logger: Logger,
+        is_headless: bool,
+        username: str,
+        password: str,
+        cache: bool,
+    ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
         self.username = username
         self.password = password
         self.logger = logger
+        self.cache = cache
 
         self.setup_session()
 
@@ -286,6 +297,10 @@ class Scraper:
 
         msg = "Activity already done." if not activity.valid else "Activity done !"
         self.logger.info(chalk.bold(chalk.red(msg)))
+
+        if self.cache:
+            add_to_cache([activity.url])
+
         return activity.valid
 
     @logged_in
@@ -295,7 +310,7 @@ class Scraper:
         count=10,
         cached_activities: list[Activity] = [],
         scroll_count=1,
-    ) -> list[Activity]:
+    ):
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
 
@@ -320,43 +335,49 @@ class Scraper:
 
         activities_urls = get_urls_from_activities_container(html)
         activities_urls = list(
-            filter(lambda url1: not (url1 in cached_activities_url), activities_urls)
+            filter(
+                lambda url1: not (url1 in cached_activities_url)
+                and (not self.cache or not is_in_cache(url1)),
+                activities_urls,
+            )
         )
 
         activities = list(map(lambda url1: Activity(url1), activities_urls))
         done_activities = []
 
-        get_done_valid_activities_count: Callable[[], int] = lambda: len(
-            list(
-                filter(
-                    lambda activity1: activity1.valid,
-                    done_activities + cached_activities,
-                )
-            )
-        )
-
         for activity in activities:
             self.try_solving_and_set_validity(activity)
             done_activities.append(activity)
 
-            msg = f"Done {get_done_valid_activities_count()}/{count} activities."
+            done_valid_activities_count = len(
+                list(
+                    filter(
+                        lambda activity1: activity1.valid,
+                        done_activities + cached_activities,
+                    )
+                )
+            )
+
+            msg = f"Done {done_valid_activities_count}/{count} activities."
             self.logger.info(chalk.bold(chalk.green(msg)))
 
-        if get_done_valid_activities_count() < count:
-            script = """
-            const element1 = document.querySelector('.browse-all-activities .rcs-inner-container');
-            element1.scrollTo({ top: element1.scrollTopMax });
-            """
+            if done_valid_activities_count >= count:
+                return
 
-            for _ in range(scroll_count):
-                self.driver.execute_script(script)
-                sleep(0.2)
+        script = """
+        const element1 = document.querySelector('.browse-all-activities .rcs-inner-container');
+        element1.scrollTo({ top: element1.scrollTopMax });
+        """
 
-            sleep(0.8)
+        for _ in range(scroll_count):
+            self.driver.execute_script(script)
+            sleep(0.2)
 
-            return self.retrieve_and_do_activities(
-                is_vocabulary,
-                count,
-                activities,
-                scroll_count + 1,
-            )
+        sleep(0.8)
+
+        return self.retrieve_and_do_activities(
+            is_vocabulary,
+            count,
+            activities,
+            scroll_count + 1,
+        )
