@@ -16,7 +16,6 @@ from src.runners.auto_run import AutoRun
 from src.runners.simple_run import SimpleRun
 
 from src.utils.fs import create_directory
-from src.utils.cache import add_to_cache
 
 
 def get_parser():
