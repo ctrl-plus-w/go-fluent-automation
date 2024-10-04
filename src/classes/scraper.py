@@ -97,7 +97,7 @@ class Scraper:
     def are_credentials_invalid(self):
         """Check if the feedback block is shown"""
         try:
-            self.wait_for_element(SELECTORS["LOGIN"]["FEEDBACK"], "Invalid", timeout=2)
+            self.wait_for_element(SELECTORS["MICROSOFT"]["FEEDBACK"], "Invalid", timeout=2)
             return True
         except TimeoutException:
             return False
@@ -119,14 +119,38 @@ class Scraper:
 
         self.logger.info("Logging in to the GoFluent portal.")
 
-        self.driver.get("https://portal.gofluent.com/app/login")
+        self.driver.get("https://portal.gofluent.com/login/samlconnector")
 
-        user_input = self.driver.find_element(*SELECTORS["LOGIN"]["USERNAME_INPUT"])
-        password_input = self.driver.find_element(*SELECTORS["LOGIN"]["PASSWORD_INPUT"])
+        # enter the domain
+        domain_input = self.driver.find_element(*SELECTORS["LOGIN"]["DOMAIN"])
         submit_button = self.driver.find_element(*SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
 
-        # Fill and send the login form
+        domain_input.send_keys("esaip")
+        submit_button.click()
+
+        # redirecting, wait for it to complete
+        self.wait_for_element(
+            SELECTORS["MICROSOFT"]["USERNAME_INPUT"],
+            "failed to redirect to ms",
+        )
+
+        # user input
+        user_input = self.driver.find_element(*SELECTORS["MICROSOFT"]["USERNAME_INPUT"])
+        submit_button = self.driver.find_element(*SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"])
+
         user_input.send_keys(self.username)
+        submit_button.click()
+
+        # redirecting, wait for it to complete
+        self.wait_for_element(
+            SELECTORS["MICROSOFT"]["PASSWORD_INPUT"],
+            "failed to redirect to ms",
+        )
+
+        # enter the password
+        password_input = self.driver.find_element(*SELECTORS["MICROSOFT"]["PASSWORD_INPUT"])
+        submit_button = self.driver.find_element(*SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"])
+
         password_input.send_keys(self.password)
         submit_button.click()
 
@@ -136,19 +160,18 @@ class Scraper:
         else:
             self.logger.error("Credentials are valid.")
 
-        self.close_modal_if_exists()
-
-        # Wait for the next page to load (checking the top left logo)
+        # redirecting, wait for it to complete
         self.wait_for_element(
-            SELECTORS["DASHBOARD"]["LOGO"],
-            "User is not logged in. (did not found the dashboard logo)",
+            SELECTORS["MICROSOFT"]["STAY_SIGNED_IN"],
+            "failed to redirect to ms",
         )
 
-        # If the redirected page is not the expected url, redirect
-        if redirect and self.driver.current_url != redirect:
-            self.driver.get(redirect)
+        # click the "stay signed in" button
+        submit_button = self.driver.find_element(*SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"])
+        submit_button.click()
 
         self.logger.info("Successfully logged in to Go Fluent.")
+        exit()
 
     @logged_in
     def select_tab(self, tab: str):

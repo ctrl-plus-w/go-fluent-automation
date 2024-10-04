@@ -3,22 +3,36 @@ from selenium.webdriver.common.by import By
 
 SELECTORS = {
     "LOGIN": {
-        "USERNAME_INPUT": (
-            By.XPATH,
-            '//*[@id="mui-1"]',
-        ),
-        "PASSWORD_INPUT": (
-            By.XPATH,
-            '//*[@id="outlined-adornment-password"]',
-        ),
         "SUBMIT_BUTTON": (
             By.XPATH,
-            '/html/body/div/div/div/div/div[2]/form/div/div[4]/button',
+            '/html/body/div/div/div/div/div[2]/form/div/div[2]/button',
+        ),
+        "DOMAIN": (
+            By.ID,
+            "outlined-size-normal",
+        ),
+    },
+    "MICROSOFT" : {
+        "USERNAME_INPUT": (
+            By.ID,
+            'i0116',
+        ),
+        "PASSWORD_INPUT": (
+           By.ID,
+           "i0118",
+        ),
+        "SUBMIT_BUTTON": (
+            By.ID,
+            "idSIButton9",
+        ),
+        "STAY_SIGNED_IN" : (
+            By.XPATH,
+            "//*[contains(text(), 'Stay signed in?')]",
         ),
         "FEEDBACK": (
-            By.CSS_SELECTOR,
-            ".form-module_feedback__fR-uq",
-        ),
+            By.XPATH,
+            "//*[contains(text(), 'Your account or password is incorrect.')]",
+        )
     },
     "DASHBOARD": {
         "LOGO": (
