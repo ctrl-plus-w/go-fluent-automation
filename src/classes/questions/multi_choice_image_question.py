@@ -26,7 +26,7 @@ class MultiChoiceImageQuestion(Question):
             correct_answer = self.element.find_element(*locator)
             src = correct_answer.get_attribute("src")
 
-            basepath = "https://portal.gofluent.com"
+            basepath = "https://esaip.gofluent.com"
 
             if src.startswith(basepath):
                 return [src[len(basepath) :]]

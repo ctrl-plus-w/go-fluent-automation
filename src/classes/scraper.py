@@ -131,7 +131,7 @@ class Scraper:
         # redirecting, wait for it to complete
         self.wait_for_element(
             SELECTORS["MICROSOFT"]["USERNAME_INPUT"],
-            "failed to redirect to ms",
+            "'Username' redirection did not work",
         )
 
         # user input
@@ -144,7 +144,7 @@ class Scraper:
         # redirecting, wait for it to complete
         self.wait_for_element(
             SELECTORS["MICROSOFT"]["PASSWORD_INPUT"],
-            "failed to redirect to ms",
+            "'Password' redirection did not work",
         )
 
         # enter the password
@@ -163,7 +163,7 @@ class Scraper:
         # redirecting, wait for it to complete
         self.wait_for_element(
             SELECTORS["MICROSOFT"]["STAY_SIGNED_IN"],
-            "failed to redirect to ms",
+            "'Stay Signed In' redirection did not work",
         )
 
         # click the "stay signed in" button
@@ -171,7 +171,6 @@ class Scraper:
         submit_button.click()
 
         self.logger.info("Successfully logged in to Go Fluent.")
-        exit()
 
     @logged_in
     def select_tab(self, tab: str):
@@ -249,8 +248,11 @@ class Scraper:
 
     def can_next_page(self):
         """Retrieve whether the button of the pagination is disabled or not"""
-        button = self.get_next_page_button()
-        return button.get_attribute("disabled") is None
+        try:
+            button = self.get_next_page_button()
+            return button.get_attribute("disabled") is None
+        except NoSuchElementException:
+            return False
 
     def retrieve_activities_from_block(self, block: WebElement):
         """Retrieve the activities from a block (training page)"""
@@ -266,7 +268,7 @@ class Scraper:
 
         for block_card in block_cards:
             locator = SELECTORS["TRAINING"]["BLOCK_CARD_LINK"]
-            url = f"https://portal.gofluent.com{block_card.find_element(*locator).get_attribute('href')}"
+            url = f"https://esaip.gofluent.com{block_card.find_element(*locator).get_attribute('href')}"
             activities.append(Activity(url, date))
 
         return activities
@@ -274,7 +276,7 @@ class Scraper:
     @logged_in
     def retrieved_done_activities(self):
         """Retrieve the list of all the done activities"""
-        url = "https://portal.gofluent.com/app/training"
+        url = "https://esaip.gofluent.com/app/training"
         if self.driver.current_url != url:
             self.driver.get(url)
 
@@ -338,9 +340,9 @@ class Scraper:
         url = ""
 
         if is_vocabulary:
-            url = "https://portal.gofluent.com/app/dashboard/resources/vocabulary"
+            url = "https://esaip.gofluent.com/app/dashboard/resources/vocabulary"
         else:
-            url = "https://portal.gofluent.com/app/dashboard/resources/grammar"
+            url = "https://esaip.gofluent.com/app/dashboard/resources/grammar"
 
         if self.driver.current_url != url:
             self.driver.get(url)

@@ -217,7 +217,7 @@ def get_urls_from_activities_container(container_html: str):
         # title = activity.select_one("div.resource-link__title")
 
         if not done:
-            activities.append(f"https://portal.gofluent.com{container.attrs['href']}")
+            activities.append(f"https://esaip.gofluent.com{container.attrs['href']}")
 
     return activities
 

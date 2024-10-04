@@ -149,6 +149,7 @@ def main():
                 is_headless=args.headless,
                 username=username,
                 password=password,
+                cache=args.cache,
             )
             runner.execute()
     except KeyboardInterrupt:
