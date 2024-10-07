@@ -1,6 +1,7 @@
 cache.txt
 
 # Other
+.DS_Store
 *.DS_Store
 .idea
 bin
