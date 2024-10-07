@@ -327,6 +327,7 @@ class Scraper:
 
             activity.valid = True if activities_done_count > 0 else False
         except Exception as e:
+            self.logger.error(str(e))
             activity.valid = False
 
         msg = "Activity already done." if not activity.valid else "Activity done !"
