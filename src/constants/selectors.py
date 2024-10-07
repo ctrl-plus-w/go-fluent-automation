@@ -12,20 +12,20 @@ SELECTORS = {
             "outlined-size-normal",
         ),
     },
-    "MICROSOFT" : {
+    "MICROSOFT": {
         "USERNAME_INPUT": (
             By.ID,
             'i0116',
         ),
         "PASSWORD_INPUT": (
-           By.ID,
-           "i0118",
+            By.ID,
+            "i0118",
         ),
         "SUBMIT_BUTTON": (
             By.ID,
             "idSIButton9",
         ),
-        "STAY_SIGNED_IN" : (
+        "STAY_SIGNED_IN": (
             By.XPATH,
             "//*[contains(text(), 'Stay signed in?')]",
         ),

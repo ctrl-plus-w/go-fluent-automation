@@ -6,7 +6,6 @@ from typing import Tuple, Optional, Callable
 import sys
 import chalk
 
-
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
@@ -39,12 +38,12 @@ class Scraper:
     """Scrapper class"""
 
     def __init__(
-        self,
-        logger: Logger,
-        is_headless: bool,
-        username: str,
-        password: str,
-        cache: bool,
+            self,
+            logger: Logger,
+            is_headless: bool,
+            username: str,
+            password: str,
+            cache: bool,
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -56,11 +55,11 @@ class Scraper:
         self.setup_session()
 
     def wait_for_element(
-        self,
-        locator: Tuple[str, str],
-        message: str,
-        timeout: int = 15,
-        to_be_clickable: bool = False,
+            self,
+            locator: Tuple[str, str],
+            message: str,
+            timeout: int = 15,
+            to_be_clickable: bool = False,
     ):
         """Wait for an element to be visible by the driver"""
         fn = (
@@ -97,7 +96,9 @@ class Scraper:
     def are_credentials_invalid(self):
         """Check if the feedback block is shown"""
         try:
-            self.wait_for_element(SELECTORS["MICROSOFT"]["FEEDBACK"], "Invalid", timeout=2)
+            self.wait_for_element(
+                SELECTORS["MICROSOFT"]["FEEDBACK"], "Invalid", timeout=2
+            )
             return True
         except TimeoutException:
             return False
@@ -136,7 +137,9 @@ class Scraper:
 
         # user input
         user_input = self.driver.find_element(*SELECTORS["MICROSOFT"]["USERNAME_INPUT"])
-        submit_button = self.driver.find_element(*SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"])
+        submit_button = self.driver.find_element(
+            *SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"]
+        )
 
         user_input.send_keys(self.username)
         submit_button.click()
@@ -148,8 +151,12 @@ class Scraper:
         )
 
         # enter the password
-        password_input = self.driver.find_element(*SELECTORS["MICROSOFT"]["PASSWORD_INPUT"])
-        submit_button = self.driver.find_element(*SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"])
+        password_input = self.driver.find_element(
+            *SELECTORS["MICROSOFT"]["PASSWORD_INPUT"]
+        )
+        submit_button = self.driver.find_element(
+            *SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"]
+        )
 
         password_input.send_keys(self.password)
         submit_button.click()
@@ -162,12 +169,14 @@ class Scraper:
 
         # redirecting, wait for it to complete
         self.wait_for_element(
-            SELECTORS["MICROSOFT"]["STAY_SIGNED_IN"],
-            "'Stay Signed In' redirection did not work",
+            SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"],
+            'Could not find the "Stay signed In?" submit button.',
         )
 
         # click the "stay signed in" button
-        submit_button = self.driver.find_element(*SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"])
+        submit_button = self.driver.find_element(
+            *SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"]
+        )
         submit_button.click()
 
         self.logger.info("Successfully logged in to Go Fluent.")
@@ -330,11 +339,11 @@ class Scraper:
 
     @logged_in
     def retrieve_and_do_activities(
-        self,
-        is_vocabulary: bool,
-        count=10,
-        cached_activities: list[Activity] = [],
-        scroll_count=1,
+            self,
+            is_vocabulary: bool,
+            count=10,
+            cached_activities: list[Activity] = [],
+            scroll_count=1,
     ):
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
@@ -362,7 +371,7 @@ class Scraper:
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)
-                and (not self.cache or not is_in_cache(url1)),
+                             and (not self.cache or not is_in_cache(url1)),
                 activities_urls,
             )
         )
