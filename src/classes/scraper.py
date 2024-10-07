@@ -38,12 +38,12 @@ class Scraper:
     """Scrapper class"""
 
     def __init__(
-            self,
-            logger: Logger,
-            is_headless: bool,
-            username: str,
-            password: str,
-            cache: bool,
+        self,
+        logger: Logger,
+        is_headless: bool,
+        username: str,
+        password: str,
+        cache: bool,
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -55,11 +55,11 @@ class Scraper:
         self.setup_session()
 
     def wait_for_element(
-            self,
-            locator: Tuple[str, str],
-            message: str,
-            timeout: int = 15,
-            to_be_clickable: bool = False,
+        self,
+        locator: Tuple[str, str],
+        message: str,
+        timeout: int = 15,
+        to_be_clickable: bool = False,
     ):
         """Wait for an element to be visible by the driver"""
         fn = (
@@ -339,11 +339,11 @@ class Scraper:
 
     @logged_in
     def retrieve_and_do_activities(
-            self,
-            is_vocabulary: bool,
-            count=10,
-            cached_activities: list[Activity] = [],
-            scroll_count=1,
+        self,
+        is_vocabulary: bool,
+        count=10,
+        cached_activities: list[Activity] = [],
+        scroll_count=1,
     ):
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
@@ -371,7 +371,7 @@ class Scraper:
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)
-                             and (not self.cache or not is_in_cache(url1)),
+                and (not self.cache or not is_in_cache(url1)),
                 activities_urls,
             )
         )
