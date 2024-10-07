@@ -1,4 +1,5 @@
 """Solver utils module"""
+
 import json
 
 from openai import OpenAI, APITimeoutError
@@ -32,7 +33,7 @@ def get_answer(logger: Logger, data: str, quiz_question: str):
     """Get the OpenAI Completion answer from the activity data and the quiz question"""
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo-16k-0613",
+            model="gpt-4o",
             messages=generate_prompt(data, quiz_question),
             timeout=10,
         )
