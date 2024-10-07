@@ -83,3 +83,8 @@ The project architecture is the following :
     - `src/utils` : The utils files. Every filename matches its content and provide methods to help process and handle
       different types of data.
     - `src/runners` : The main app runners, handling the global logic of the code (abstraction for the parser).
+
+## Improvements & Bugs
+
+- improv: using Kor to get securely typed data from OpenAI
+- bug: when an activity skips because "All questions have been used and it's trying to retake the quiz.", the done activities count reset? to debug, check `scraper.py:387`
