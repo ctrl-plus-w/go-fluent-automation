@@ -37,22 +37,33 @@ python3 -m src.main --auto-run 10 --grammar
 Project CLI helper :
 
 ```
-usage: python3 -m src.main [-h] (--auto-run AUTO_RUN_COUNT | --simple-run URL) [--vocabulary | --grammar] [--debug | --no-debug]
-                           [--headless | --no-headless] [--profile PROFILE]
+usage: python3 -m src.main [-h] (--auto-run AUTO_RUN_COUNT | --simple-run URL)
+                           [--vocabulary | --grammar] [--debug | --no-debug]
+                           [--headless | --no-headless] [--cache | --no-cache]
+                           [--profile PROFILE] [--minimum-level {A1,A2,B1,B2,C1,C2}]
+                           [--maximum-level {A1,A2,B1,B2,C1,C2}]
 
 automatically execute some go fluent activities.
 
 options:
   -h, --help            show this help message and exit
   --auto-run AUTO_RUN_COUNT
-                        the amount of activities to do for the month (e.g. only does 2 if you already did 8).
+                        the amount of activities to do for the month (e.g. only does 2 if
+                        you already did 8).
   --simple-run URL      the URL of the activity to solve.
   --vocabulary          Do the vocabulary activities.
   --grammar             Do the grammar activities
   --debug, --no-debug   Enable the debug mode. Shows more logs messages in the terminal.
   --headless, --no-headless
-                        Run the firefox instance in headless mode (meaning the window won't show).
+                        Run the firefox instance in headless mode (meaning the window won't
+                        show).
+  --cache, --no-cache   Enable the cache system. If enabled, the program will store the
+                        done activities in a file.
   --profile PROFILE     The name of the credentials profile stored in the .env file.
+  --minimum-level {A1,A2,B1,B2,C1,C2}
+                        Minimum level of the activity (default: A1)
+  --maximum-level {A1,A2,B1,B2,C1,C2}
+                        Maximum level of the activity (default: C2)
 ```
 
 Two main runners are set up, you can either automatically execute the auto run mode where the count of done activities
