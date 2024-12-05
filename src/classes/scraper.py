@@ -44,6 +44,8 @@ class Scraper:
         username: str,
         password: str,
         cache: bool,
+        minimum_level: str | None = None,
+        maximum_level: str | None = None,
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -51,6 +53,8 @@ class Scraper:
         self.password = password
         self.logger = logger
         self.cache = cache
+        self.minimum_level = minimum_level
+        self.maximum_level = maximum_level
 
         self.logged_in = False
 
@@ -300,7 +304,6 @@ class Scraper:
         """Retrieve the list of all the done activities"""
         url = "https://esaip.gofluent.com/app/training"
         if self.driver.current_url != url:
-            print("url is different")
             self.driver.get(url)
 
         locator = SELECTORS["TRAINING"]["CONTAINER"]
@@ -382,7 +385,7 @@ class Scraper:
             map(lambda activity1: activity1.url, cached_activities)
         )
 
-        activities_urls = get_urls_from_activities_container(html)
+        activities_urls = get_urls_from_activities_container(html, self.minimum_level, self.maximum_level)
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)
