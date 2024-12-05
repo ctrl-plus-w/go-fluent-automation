@@ -52,6 +52,8 @@ class Scraper:
         self.logger = logger
         self.cache = cache
 
+        self.logged_in = False
+
         self.setup_session()
 
     def wait_for_element(
@@ -115,7 +117,11 @@ class Scraper:
 
     def login(self, redirect: Optional[str] = None):
         """Log in the user to the GoFluent website"""
-        if self.is_logged_in():
+
+        # when using --simple-run JSESSIONID can't be found
+        # so added logged_in attribute to keep track of whether or not
+        # we completed the login process
+        if self.is_logged_in() or self.logged_in:
             return
 
         self.logger.info("Logging in to the GoFluent portal.")
@@ -179,7 +185,14 @@ class Scraper:
         )
         submit_button.click()
 
+        # wait for dashboard to appear
+        self.wait_for_element(
+            SELECTORS["DASHBOARD"]["LOGO"],
+            "'Password' redirection did not work",
+        )
+
         self.logger.info("Successfully logged in to Go Fluent.")
+        self.logged_in = True
 
     @logged_in
     def select_tab(self, tab: str):
@@ -287,6 +300,7 @@ class Scraper:
         """Retrieve the list of all the done activities"""
         url = "https://esaip.gofluent.com/app/training"
         if self.driver.current_url != url:
+            print("url is different")
             self.driver.get(url)
 
         locator = SELECTORS["TRAINING"]["CONTAINER"]
