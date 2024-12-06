@@ -17,6 +17,8 @@ class AutoRun:
         username: str,
         password: str,
         cache: bool,
+        minimum_level: str | None = None,
+        maximum_level: str | None = None,
     ):
         self.auto_run_count = auto_run_count
         self.is_vocabulary = is_vocabulary
@@ -25,6 +27,8 @@ class AutoRun:
         self.password = password
         self.logger = logger
         self.cache = cache
+        self.minimum_level = minimum_level
+        self.maximum_level = maximum_level
 
     def execute(self):
         """Auto-run method, retrieving the auto-run count property from the cli, retrieving the amount of done activities,
@@ -35,6 +39,8 @@ class AutoRun:
             username=self.username,
             password=self.password,
             cache=self.cache,
+            minimum_level=self.minimum_level,
+            maximum_level=self.maximum_level,
         )
 
         self.logger.info("Retrieving the count of done activities for this month.")

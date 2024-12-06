@@ -44,6 +44,8 @@ class Scraper:
         username: str,
         password: str,
         cache: bool,
+        minimum_level: str | None = None,
+        maximum_level: str | None = None,
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -51,6 +53,10 @@ class Scraper:
         self.password = password
         self.logger = logger
         self.cache = cache
+        self.minimum_level = minimum_level
+        self.maximum_level = maximum_level
+
+        self.logged_in = False
 
         self.setup_session()
 
@@ -115,7 +121,11 @@ class Scraper:
 
     def login(self, redirect: Optional[str] = None):
         """Log in the user to the GoFluent website"""
-        if self.is_logged_in():
+
+        # when using --simple-run JSESSIONID can't be found
+        # so added logged_in attribute to keep track of whether or not
+        # we completed the login process
+        if self.is_logged_in() or self.logged_in:
             return
 
         self.logger.info("Logging in to the GoFluent portal.")
@@ -179,7 +189,14 @@ class Scraper:
         )
         submit_button.click()
 
+        # wait for dashboard to appear
+        self.wait_for_element(
+            SELECTORS["DASHBOARD"]["LOGO"],
+            "'Password' redirection did not work",
+        )
+
         self.logger.info("Successfully logged in to Go Fluent.")
+        self.logged_in = True
 
     @logged_in
     def select_tab(self, tab: str):
@@ -368,7 +385,7 @@ class Scraper:
             map(lambda activity1: activity1.url, cached_activities)
         )
 
-        activities_urls = get_urls_from_activities_container(html)
+        activities_urls = get_urls_from_activities_container(html, self.minimum_level, self.maximum_level)
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)

@@ -88,6 +88,22 @@ def get_parser():
         help="The name of the credentials profile stored in the .env file.",
     )
 
+    parser.add_argument(
+        "--minimum-level",
+        default=None,
+        required=False,
+        choices=["A1", "A2", "B1", "B2", "C1", "C2"],
+        help="Minimum level of the activity (default: A1)",
+    )
+
+    parser.add_argument(
+        "--maximum-level",
+        default=None,
+        required=False,
+        choices=["A1", "A2", "B1", "B2", "C1", "C2"],
+        help="Maximum level of the activity (default: C2)",
+    )
+
     return parser
 
 
@@ -140,6 +156,8 @@ def main():
                 username=username,
                 password=password,
                 cache=args.cache,
+                minimum_level=args.minimum_level,
+                maximum_level=args.maximum_level
             )
             runner.execute()
         else:
