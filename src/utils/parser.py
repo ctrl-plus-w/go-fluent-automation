@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Dict
 from bs4 import BeautifulSoup
 
+from typing import List
+
 from src.utils.lists import _f, _m
 
 
@@ -205,7 +207,12 @@ def get_fill_gaps_block_question_as_text(question_html: str):
     return soup.text.strip() + "\n" + answers_as_txt
 
 
-def get_urls_from_activities_container(container_html: str, minimum_level: str | None = None, maximum_level: str | None = None):
+def get_urls_from_activities_container(
+    container_html: str,
+    minimum_level: str | None = None,
+    maximum_level: str | None = None,
+    skip_activities: List[str] = []
+):
     """Get the activities as list[Activiy] from the vocabulary page activities container"""
     soup = BeautifulSoup(container_html, features="html.parser")
 
@@ -225,6 +232,8 @@ def get_urls_from_activities_container(container_html: str, minimum_level: str |
         done = activity.select_one("div.resource-link__done-icon svg")
         level = activity.select_one(".resource-link__tags").text.split("-")
 
+        activity_url = f"https://esaip.gofluent.com{container.attrs['href']}"
+
         # skip if the activity's level is too high
         if maximum_level and level_mapping[level[-1]] > level_mapping[maximum_level]:
             continue
@@ -233,9 +242,14 @@ def get_urls_from_activities_container(container_html: str, minimum_level: str |
         if minimum_level and level_mapping[level[0]] < level_mapping[minimum_level]:
             continue
 
+        # check if the activity is in the skip activity list
+        if activity_url in skip_activities:
+            print(f"Activity {activity_url} skipped.")
+            continue
+
         # add to todo if not already done
         if not done:
-            activities.append(f"https://esaip.gofluent.com{container.attrs['href']}")
+            activities.append(activity_url)
 
     return activities
 

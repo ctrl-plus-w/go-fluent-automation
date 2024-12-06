@@ -104,6 +104,13 @@ def get_parser():
         help="Maximum level of the activity (default: C2)",
     )
 
+    parser.add_argument(
+        "--skip-activities",
+        default="",
+        required=False,
+        help="Skip some activities (comma separated, no space).",
+    )
+
     return parser
 
 
@@ -157,7 +164,8 @@ def main():
                 password=password,
                 cache=args.cache,
                 minimum_level=args.minimum_level,
-                maximum_level=args.maximum_level
+                maximum_level=args.maximum_level,
+                skip_activities=args.skip_activities.split(","),
             )
             runner.execute()
         else:

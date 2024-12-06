@@ -6,6 +6,7 @@ from src.classes.logger import Logger
 from src.utils.date import is_current_month_and_year
 from src.utils.cache import add_to_cache
 
+from typing import List
 
 class AutoRun:
     def __init__(
@@ -19,6 +20,7 @@ class AutoRun:
         cache: bool,
         minimum_level: str | None = None,
         maximum_level: str | None = None,
+        skip_activities: List[str] = []
     ):
         self.auto_run_count = auto_run_count
         self.is_vocabulary = is_vocabulary
@@ -29,6 +31,7 @@ class AutoRun:
         self.cache = cache
         self.minimum_level = minimum_level
         self.maximum_level = maximum_level
+        self.skip_activities = skip_activities
 
     def execute(self):
         """Auto-run method, retrieving the auto-run count property from the cli, retrieving the amount of done activities,
@@ -41,6 +44,7 @@ class AutoRun:
             cache=self.cache,
             minimum_level=self.minimum_level,
             maximum_level=self.maximum_level,
+            skip_activities=self.skip_activities
         )
 
         self.logger.info("Retrieving the count of done activities for this month.")

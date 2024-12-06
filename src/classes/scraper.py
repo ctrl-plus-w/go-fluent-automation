@@ -23,6 +23,8 @@ from src.utils.cache import add_to_cache, is_in_cache
 
 from src.constants.selectors import SELECTORS
 
+from typing import List
+
 
 def logged_in(func):
     """Decorator to log in if the user isn't yet"""
@@ -46,6 +48,7 @@ class Scraper:
         cache: bool,
         minimum_level: str | None = None,
         maximum_level: str | None = None,
+        skip_activities: List[str] = []
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -55,6 +58,7 @@ class Scraper:
         self.cache = cache
         self.minimum_level = minimum_level
         self.maximum_level = maximum_level
+        self.skip_activities = skip_activities
 
         self.logged_in = False
 
@@ -385,7 +389,7 @@ class Scraper:
             map(lambda activity1: activity1.url, cached_activities)
         )
 
-        activities_urls = get_urls_from_activities_container(html, self.minimum_level, self.maximum_level)
+        activities_urls = get_urls_from_activities_container(html, self.minimum_level, self.maximum_level, self.skip_activities)
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)
