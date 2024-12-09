@@ -1,4 +1,5 @@
 """Match text question module"""
+
 from selenium.common.exceptions import NoSuchElementException, InvalidSelectorException
 from selenium.webdriver.common.by import By
 
@@ -32,6 +33,16 @@ class MatchTextQuestion(Question):
         except NoSuchElementException:
             return None
 
+    def can_answer(self):
+        """Check if there is an empty answer remaining"""
+        try:
+            xpath = '//button[contains(@class,"Stem__answer") and @disabled]'
+            el = self.element.find_element(By.XPATH, xpath)
+            print("stem answer element", el)
+            return True
+        except NoSuchElementException:
+            return False
+
     def select_random_option(self):
         """Select a random option if there's some remaining"""
         option = self.get_random_option()
@@ -59,7 +70,7 @@ class MatchTextQuestion(Question):
 
                 self.select_random_option()
 
-        while not (self.get_random_option() is None):
+        while self.can_answer():
             self.select_random_option()
 
         return self.submit_and_check_correct_answer(values)
