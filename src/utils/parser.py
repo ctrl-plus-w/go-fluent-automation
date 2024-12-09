@@ -1,6 +1,7 @@
 """Parse module"""
+
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 from bs4 import BeautifulSoup
 
 from src.utils.lists import _f, _m
@@ -8,10 +9,22 @@ from src.utils.lists import _f, _m
 
 def get_date_from_str(txt: str):
     """Get the datetime instance from a date str of the format -> mmmmm dd, yyyy (locale: FR)"""
-    months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
-              "novembre", "décembre"]
+    months = [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ]
 
-    month_str, date_str, year_str = txt.split(' ')
+    month_str, date_str, year_str = txt.split(" ")
     return datetime(int(year_str), months.index(month_str) + 1, int(date_str[:-1]))
 
 
@@ -36,7 +49,7 @@ def get_section_type(soup: BeautifulSoup) -> str:
     sets = [vocab_cols_images_sets_len, vocab_rows_images_sets_len, vocab_rows_sets_len]
 
     assert (
-            len(_f(lambda s: s > 0, sets)) == 1 or len(_f(lambda s: s != 0, sets)) == 1
+        len(_f(lambda s: s > 0, sets)) == 1 or len(_f(lambda s: s != 0, sets)) == 1
     ), "Cannot determine the type of the section."
 
     if vocab_cols_images_sets_len > 0:
@@ -205,17 +218,21 @@ def get_fill_gaps_block_question_as_text(question_html: str):
     return soup.text.strip() + "\n" + answers_as_txt
 
 
-def get_urls_from_activities_container(container_html: str, minimum_level: str | None = None, maximum_level: str | None = None):
+def get_urls_from_activities_container(
+    container_html: str,
+    minimum_level: Optional[str] = None,
+    maximum_level: Optional[str] = None,
+):
     """Get the activities as list[Activiy] from the vocabulary page activities container"""
     soup = BeautifulSoup(container_html, features="html.parser")
 
     level_mapping = {
-        "A1" : 1,
-        "A2" : 2,
-        "B1" : 3,
-        "B2" : 4,
-        "C1" : 5,
-        "C2" : 6,
+        "A1": 1,
+        "A2": 2,
+        "B1": 3,
+        "B2": 4,
+        "C1": 5,
+        "C2": 6,
     }
 
     activities = []

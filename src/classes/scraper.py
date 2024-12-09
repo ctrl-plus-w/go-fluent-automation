@@ -44,8 +44,8 @@ class Scraper:
         username: str,
         password: str,
         cache: bool,
-        minimum_level: str | None = None,
-        maximum_level: str | None = None,
+        minimum_level: Optional[str] = None,
+        maximum_level: Optional[str] = None,
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -385,7 +385,9 @@ class Scraper:
             map(lambda activity1: activity1.url, cached_activities)
         )
 
-        activities_urls = get_urls_from_activities_container(html, self.minimum_level, self.maximum_level)
+        activities_urls = get_urls_from_activities_container(
+            html, self.minimum_level, self.maximum_level
+        )
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)

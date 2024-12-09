@@ -1,3 +1,5 @@
+from typing import Optional
+
 import sys
 
 from src.classes.scraper import Scraper
@@ -17,8 +19,8 @@ class AutoRun:
         username: str,
         password: str,
         cache: bool,
-        minimum_level: str | None = None,
-        maximum_level: str | None = None,
+        minimum_level: Optional[str] = None,
+        maximum_level: Optional[str] = None,
     ):
         self.auto_run_count = auto_run_count
         self.is_vocabulary = is_vocabulary
