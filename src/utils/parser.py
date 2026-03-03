@@ -8,24 +8,27 @@ from src.utils.lists import _f, _m
 
 
 def get_date_from_str(txt: str):
-    """Get the datetime instance from a date str of the format -> mmmmm dd, yyyy (locale: FR)"""
-    months = [
-        "janvier",
-        "février",
-        "mars",
-        "avril",
-        "mai",
-        "juin",
-        "juillet",
-        "août",
-        "septembre",
-        "octobre",
-        "novembre",
-        "décembre",
+    """Get the datetime instance from a date str of the format -> mmmmm dd, yyyy"""
+    months_fr = [
+        "janvier", "février", "mars", "avril", "mai", "juin",
+        "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+    ]
+    months_en = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december",
     ]
 
     month_str, date_str, year_str = txt.split(" ")
-    return datetime(int(year_str), months.index(month_str) + 1, int(date_str[:-1]))
+    month_lower = month_str.lower()
+
+    if month_lower in months_fr:
+        month_num = months_fr.index(month_lower) + 1
+    elif month_lower in months_en:
+        month_num = months_en.index(month_lower) + 1
+    else:
+        raise ValueError(f"Unknown month name: '{month_str}'")
+
+    return datetime(int(year_str), month_num, int(date_str[:-1]))
 
 
 def get_section_type(soup: BeautifulSoup) -> str:
@@ -239,20 +242,29 @@ def get_urls_from_activities_container(
 
     for activity in soup.select("li.ResourcesList__item"):
         container = activity.select_one(".resource-link")
-        done = activity.select_one("div.resource-link__done-icon svg")
-        level = activity.select_one(".resource-link__tags").text.split("-")
+        if not container or not container.get("href"):
+            continue
+
+        # The done-icon div always exists; it only has children (an SVG/icon) when done
+        done_icon = activity.select_one("div.resource-link__done-icon")
+        is_done = done_icon is not None and len(done_icon.contents) > 0
+
+        tags_el = activity.select_one(".resource-link__tags")
+        if not tags_el:
+            continue
+        level = tags_el.text.strip().split("-")
 
         # skip if the activity's level is too high
-        if maximum_level and level_mapping[level[-1]] > level_mapping[maximum_level]:
+        if maximum_level and level_mapping.get(level[-1].strip(), 0) > level_mapping.get(maximum_level, 6):
             continue
 
         # skip if the activity's level is too low
-        if minimum_level and level_mapping[level[0]] < level_mapping[minimum_level]:
+        if minimum_level and level_mapping.get(level[0].strip(), 0) < level_mapping.get(minimum_level, 1):
             continue
 
         # add to todo if not already done
-        if not done:
-            activities.append(f"https://esaip.gofluent.com{container.attrs['href']}")
+        if not is_done:
+            activities.append(f"https://esaip.gofluent.com{container['href']}")
 
     return activities
 

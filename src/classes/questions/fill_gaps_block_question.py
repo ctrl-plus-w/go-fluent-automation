@@ -4,7 +4,8 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 from src.classes.questions.question import Question
-from src.utils.parser import get_fill_gaps_block_question_as_text, get_green_text_correct_answer
+
+from src.constants.selectors import SELECTORS
 from src.utils.strings import escape
 
 
@@ -12,31 +13,47 @@ class FillGapsBlockQuestion(Question):
     """Fill gaps blocks output question"""
 
     def as_text(self):
-        html = self.element.get_attribute("outerHTML")
-        self.question_str = get_fill_gaps_block_question_as_text(html)
+        # Get the stem text and available choices
+        stem_text = ""
+        try:
+            stem = self.element.find_element(*SELECTORS["QUIZ"]["STEM"])
+            stem_text = stem.text.strip()
+        except NoSuchElementException:
+            stem_text = self.element.text
+
+        choices = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+        choices_text = "\n".join([f"- {c.text.strip()}" for c in choices])
+
+        self.question_str = f"{stem_text}\n{choices_text}"
         return self.question_str
 
     def get_correct_answer(self):
-        content = get_green_text_correct_answer(self.element.get_attribute("outerHTML"))
+        try:
+            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
+            if items:
+                return [item.text.strip() for item in items if item.text.strip()]
 
-        if content:
-            return content.split(", ")
-
-        return None
+            title = self.element.find_element(*SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"])
+            text = title.text.strip()
+            if text:
+                return text.split(", ")
+            return None
+        except NoSuchElementException:
+            return None
 
     def can_answer(self):
-        """Check if all the fill options buttons are filled"""
-        for button in self.element.find_elements(By.CSS_SELECTOR, ".Stem__answer"):
-            if button.text == "":
+        """Check if there are empty receiver slots"""
+        receivers = self.element.find_elements(*SELECTORS["QUIZ"]["RECEIVER"])
+        for receiver in receivers:
+            if receiver.text.strip() == "":
                 return True
-
         return False
 
     def get_random_option(self):
-        """Get a random option (if no remaining, return None)"""
+        """Get a random unselected option from the source container"""
         try:
-            xpath = '//*[contains(@class,"Question__fill-button") and not(contains(@class, "Question__fill-button_selected_yes"))]'
-            return self.element.find_element(By.XPATH, xpath)
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+            return options[0] if options else None
         except NoSuchElementException:
             return None
 
@@ -49,24 +66,40 @@ class FillGapsBlockQuestion(Question):
             self.logger.debug("Selecting a random option.")
             option.click()
         else:
-            self.logger.debug("Did not found any random options.")
+            self.logger.debug("Did not find any random options.")
 
     def answer(self, values: list[str]):
         for value in values:
             try:
-                xpath = f'//button[contains(@class, "Question__fill-button") and text()="{escape(value)}"]'
-                locator = (By.XPATH, xpath)
+                options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+                clicked = False
+                for option in options:
+                    if option.text.strip() == value.strip():
+                        option.click()
+                        clicked = True
+                        break
 
-                button = self.element.find_element(*locator)
-
-                button.click()
+                if not clicked:
+                    self.logger.error(
+                        "Invalid OpenAI completion answer, taking the 1st answer."
+                    )
+                    self.select_random_option()
             except NoSuchElementException:
-                msg = "Invalid OpenAI completion answer, taking the 1st answer."
-                self.logger.error(msg)
-
+                self.logger.error(
+                    "Invalid OpenAI completion answer, taking the 1st answer."
+                )
                 self.select_random_option()
 
-        while self.can_answer():
+        max_attempts = 50
+        attempts = 0
+        while self.can_answer() and attempts < max_attempts:
+            if not self.get_random_option():
+                self.logger.info("No source options left but receivers still empty.")
+                break
             self.select_random_option()
+            attempts += 1
+
+        if attempts >= max_attempts:
+            self.logger.info("Reached max attempts in fill gaps block cleanup loop.")
 
         return self.submit_and_check_correct_answer(values)

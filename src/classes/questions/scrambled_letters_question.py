@@ -5,8 +5,8 @@ from selenium.webdriver.common.by import By
 
 from src.classes.questions.question import Question
 
+from src.constants.selectors import SELECTORS
 from src.utils.lists import _m
-from src.utils.strings import escape
 
 
 class ScrambledLettersQuestion(Question):
@@ -18,21 +18,33 @@ class ScrambledLettersQuestion(Question):
 
     def get_correct_answer(self):
         try:
-            locator = (
-                By.CSS_SELECTOR,
-                ".Question_type_scrambled-letters__correct-answer-block > div",
-            )
-            correct_answer = self.element.find_element(*locator)
+            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
+            if items:
+                answer_text = items[0].text.strip()
+                return list(answer_text)
 
-            return list(correct_answer.text)
+            title = self.element.find_element(*SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"])
+            text = title.text.strip()
+            if text:
+                # Extract the answer word from the explanation
+                return list(text.split(" ")[-1])
+            return None
         except NoSuchElementException:
             return None
 
+    def can_answer(self):
+        """Check if there are empty receiver slots"""
+        receivers = self.element.find_elements(*SELECTORS["QUIZ"]["RECEIVER"])
+        for receiver in receivers:
+            if receiver.text.strip() == "":
+                return True
+        return False
+
     def get_random_option(self):
-        """Get a random option (if no remaining, return None)"""
+        """Get a random unselected option from the source container"""
         try:
-            xpath = '//*[contains(@class,"Question_type_scrambled-letters__unselected-box")]//button[contains(@class,"ScrambledLettersOption")]'
-            return self.element.find_element(By.XPATH, xpath)
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+            return options[0] if options else None
         except NoSuchElementException:
             return None
 
@@ -45,9 +57,9 @@ class ScrambledLettersQuestion(Question):
             self.logger.debug("Selecting a random option.")
             option.click()
         else:
-            self.logger.debug("Did not found any random options.")
+            self.logger.debug("Did not find any random options.")
 
-    def answer(self, values: str):
+    def answer(self, values: list[str]):
         try:
             if len(values[0]) > 1:
                 values = list(values[0])
@@ -58,23 +70,32 @@ class ScrambledLettersQuestion(Question):
 
         for value in values:
             try:
-                xpath = "".join(
-                    [
-                        '//*[contains(@class,"Question_type_scrambled-letters__unselected-box")]',
-                        f'//button[contains(@class,"ScrambledLettersOption") and (contains(text(), "{escape(value).upper()}") or contains(text(), "{escape(value).lower()}"))]',
-                    ]
-                )
+                options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+                clicked = False
+                for option in options:
+                    if option.text.strip().upper() == value.upper():
+                        option.click()
+                        clicked = True
+                        break
 
-                locator = (By.XPATH, xpath)
-                button = self.element.find_element(*locator)
-                button.click()
+                if not clicked:
+                    self.logger.error(
+                        "Invalid OpenAI completion answer, taking the 1st answer."
+                    )
+                    self.select_random_option()
             except NoSuchElementException:
-                msg = "Invalid OpenAI completion answer, taking the 1st answer."
-                self.logger.error(msg)
-
+                self.logger.error(
+                    "Invalid OpenAI completion answer, taking the 1st answer."
+                )
                 self.select_random_option()
 
-        while self.get_random_option():
+        max_attempts = 50
+        attempts = 0
+        while self.can_answer() and attempts < max_attempts:
+            if not self.get_random_option():
+                self.logger.info("No source options left but receivers still empty.")
+                break
             self.select_random_option()
+            attempts += 1
 
         return self.submit_and_check_correct_answer(values)

@@ -2,19 +2,16 @@
 
 import argparse
 import os
-
-import chalk
-import sys
 import re
-
+import sys
 from datetime import datetime
 from typing import Optional
 
-from src.classes.logger import Logger
+import chalk
 
+from src.classes.logger import Logger
 from src.runners.auto_run import AutoRun
 from src.runners.simple_run import SimpleRun
-
 from src.utils.fs import create_directory
 
 
@@ -147,7 +144,7 @@ def main():
     username, password = get_credentials(logger, args.profile)
 
     try:
-        if not (args.auto_run_count is None):
+        if args.auto_run_count is not None:
             runner = AutoRun(
                 logger=logger,
                 auto_run_count=args.auto_run_count,
@@ -157,7 +154,7 @@ def main():
                 password=password,
                 cache=args.cache,
                 minimum_level=args.minimum_level,
-                maximum_level=args.maximum_level
+                maximum_level=args.maximum_level,
             )
             runner.execute()
         else:

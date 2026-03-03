@@ -1,31 +1,31 @@
 """Multi choices with text output question module"""
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.by import By
 
 from src.classes.questions.question import Question
 from src.classes.logger import Logger
 
-from src.utils.strings import escape
+from src.constants.selectors import SELECTORS
 
 
 class MultiChoiceTextQuestion(Question):
     """Multi choices with text output question"""
 
-    def __init__(self, logger: Logger, q_type: str, element: WebElement, output_multiple: bool):
-        super().__init__(logger, q_type, element)
-
-        self.output_multiple = output_multiple
-
     def get_correct_answer(self):
         try:
-            locator = (
-                By.CSS_SELECTOR,
-                ".Question__option.Question__option_correct_yes",
-            )
-            correct_answer = self.element.find_element(*locator)
+            # Check explanation list first
+            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
+            if items:
+                return [item.text.strip() for item in items if item.text.strip()]
 
-            return [correct_answer.text]
+            # Fallback: look for the radio option marked as correct
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["RADIO_OPTION"])
+            for option in options:
+                classes = option.get_attribute("class") or ""
+                if "correctSelected" in classes:
+                    return [option.text.strip()]
+
+            return None
         except NoSuchElementException:
             return None
 
@@ -33,25 +33,28 @@ class MultiChoiceTextQuestion(Question):
         self.question_str = self.element.text
         return self.question_str
 
-    def answer(self, values: str):
-        if not self.output_multiple:
-            values = values[:1]
+    def answer(self, values: list[str]):
+        value = values[0] if values else ""
 
-        for value in values:
-            try:
-                xpath = f'//button[contains(@class,"Question__option")]//*[contains(text(), "{escape(value)}")]/..'
-                locator = (By.XPATH, xpath)
+        try:
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["RADIO_OPTION"])
 
-                button = self.element.find_element(*locator)
+            # Try to find matching option by text
+            matched = False
+            for option in options:
+                if value.strip().lower() in option.text.strip().lower():
+                    option.click()
+                    self.logger.debug(f'Selected the "{value}" choice.')
+                    matched = True
+                    break
 
-                button.click()
-                self.logger.debug(f'Selected the "{escape(value)}" choice.')
-            except NoSuchElementException:
-                msg = "Invalid OpenAI completion answer, taking the 1st answer."
-                self.logger.debug(msg)
+            if not matched and options:
+                self.logger.debug(
+                    "Invalid OpenAI completion answer, taking the 1st answer."
+                )
+                options[0].click()
 
-                xpath = "//button[contains(@class,'Question__option')]"
-                button = self.element.find_element(By.XPATH, xpath)
-                button.click()
+        except NoSuchElementException:
+            self.logger.debug("Could not find radio options.")
 
         return self.submit_and_check_correct_answer(values)

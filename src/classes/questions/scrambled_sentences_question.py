@@ -1,66 +1,64 @@
 """Scrambled sentences block output question module"""
 
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.by import By
 
 from src.classes.questions.question import Question
-
+from src.constants.selectors import SELECTORS
 from src.utils.strings import escape
-from src.utils.parser import (
-    get_scrambled_sentences_block_question_as_text,
-    get_green_text_correct_answer,
-    get_scrambled_sentences_block_question_choices,
-)
 
 
 class ScrambledSentencesQuestion(Question):
     """Scrambled sentences block output question"""
 
     def as_text(self):
-        html = self.element.get_attribute("outerHTML")
-        self.question_str = get_scrambled_sentences_block_question_as_text(html)
+        # Get the stem/instructions text
+        stem_text = ""
+        try:
+            stem = self.element.find_element(*SELECTORS["QUIZ"]["STEM"])
+            stem_text = stem.text.strip()
+        except NoSuchElementException:
+            stem_text = self.element.text
+
+        # Get available word choices from source container, sorted so that
+        # reshuffled versions of the same question produce the same key.
+        choices = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+        sorted_choices = sorted([c.text.strip() for c in choices])
+        choices_text = "\n".join([f"- {c}" for c in sorted_choices])
+
+        self.question_str = f"{stem_text}\n{choices_text}"
         return self.question_str
 
     def get_correct_answer(self):
-        html = self.element.get_attribute("outerHTML")
+        try:
+            items = self.element.find_elements(
+                *SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"]
+            )
+            if items:
+                return [item.text.strip() for item in items if item.text.strip()]
 
-        # Retrieve the green text (aka the answer)
-        answer = get_green_text_correct_answer(html)
-
-        if not answer:
+            title = self.element.find_element(
+                *SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"]
+            )
+            text = title.text.strip()
+            if text:
+                return [text]
+            return None
+        except NoSuchElementException:
             return None
 
-        # Get the available choices
-        choices = get_scrambled_sentences_block_question_choices(html)
-
-        if len(choices) == 0:
-            return None
-
-        result = []
-
-        # Get the right choice one by one
-        while len(result) < len(choices):
-            correct_choice = None
-
-            for choice in choices:
-                if answer.startswith(choice):
-                    correct_choice = choice
-                    answer = answer[len(choice) :].strip()
-                    break
-
-            if not correct_choice:
-                self.logger.debug("Did not found any correct choice.")
-                return None
-
-            result.append(correct_choice)
-
-        return result
+    def can_answer(self):
+        """Check if there are empty receiver slots"""
+        receivers = self.element.find_elements(*SELECTORS["QUIZ"]["RECEIVER"])
+        for receiver in receivers:
+            if receiver.text.strip() == "":
+                return True
+        return False
 
     def get_random_option(self):
-        """Get a random option (if no remaining, return None)"""
+        """Get a random unselected option from the source container"""
         try:
-            xpath = '//*[contains(@class,"Question_type_scrambled-sentence__unselected-box")]//button[contains(@class,"ScrambledSentenceOption")]'
-            return self.element.find_element(By.XPATH, xpath)
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+            return options[0] if options else None
         except NoSuchElementException:
             return None
 
@@ -73,29 +71,40 @@ class ScrambledSentencesQuestion(Question):
             self.logger.debug("Selecting a random option.")
             option.click()
         else:
-            self.logger.debug("Did not found any random options.")
+            self.logger.debug("Did not find any random options.")
 
-    def answer(self, values: str):
+    def answer(self, values: list[str]):
         for value in values:
             try:
                 self.logger.debug(f"Retrieving button with value: '{escape(value)}'")
-                xpath = "".join(
-                    [
-                        '//*[contains(@class,"Question_type_scrambled-sentence__unselected-box")]',
-                        f'//button[contains(@class,"ScrambledSentenceOption") and contains(text(), "{escape(value)}")]',
-                    ]
+                options = self.element.find_elements(
+                    *SELECTORS["QUIZ"]["SOURCE_OPTION"]
                 )
+                clicked = False
+                for option in options:
+                    if value.strip().lower() in option.text.strip().lower():
+                        option.click()
+                        clicked = True
+                        break
 
-                locator = (By.XPATH, xpath)
-                button = self.element.find_element(*locator)
-                button.click()
+                if not clicked:
+                    self.logger.error(
+                        "Invalid OpenAI completion answer, taking the 1st answer."
+                    )
+                    self.select_random_option()
             except NoSuchElementException:
-                msg = "Invalid OpenAI completion answer, taking the 1st answer."
-                self.logger.error(msg)
-
+                self.logger.error(
+                    "Invalid OpenAI completion answer, taking the 1st answer."
+                )
                 self.select_random_option()
 
-        while self.get_random_option():
+        max_attempts = 50
+        attempts = 0
+        while self.can_answer() and attempts < max_attempts:
+            if not self.get_random_option():
+                self.logger.info("No source options left but receivers still empty.")
+                break
             self.select_random_option()
+            attempts += 1
 
         return self.submit_and_check_correct_answer(values)

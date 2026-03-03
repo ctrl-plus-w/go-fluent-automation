@@ -2,12 +2,15 @@
 
 from time import sleep
 from typing import Tuple, Optional, Callable
+from urllib.parse import urlparse, urlunparse
 
+import os
 import sys
 import chalk
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver import Firefox
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
@@ -82,8 +85,11 @@ class Scraper:
 
         options = Options()
 
-        # if prod:
-        #     options.add_argument("--disable-dev-shm-usage")
+        # Use a persistent profile directory to keep session/cookies across runs
+        profile_path = os.path.join(os.getcwd(), ".session")
+        os.makedirs(profile_path, exist_ok=True)
+        options.add_argument("-profile")
+        options.add_argument(profile_path)
 
         if self.is_headless:
             options.add_argument("--no-sandbox")
@@ -109,6 +115,37 @@ class Scraper:
         except TimeoutException:
             return False
 
+    def _wait_for_dashboard(self, timeout=30):
+        """Wait for the GoFluent dashboard to load after login"""
+        # Try multiple possible indicators that the dashboard has loaded
+        for _ in range(timeout * 2):
+            sleep(0.5)
+            current_url = self.driver.current_url
+            # Check if we're on the dashboard
+            if "gofluent.com/app/" in current_url and "samlconnector" not in current_url:
+                # Try to find any dashboard element
+                try:
+                    self.driver.find_element(*SELECTORS["DASHBOARD"]["LOGO"])
+                    self.logger.debug("Found dashboard logo.")
+                    return
+                except NoSuchElementException:
+                    pass
+                # Alternative: check for any common dashboard element
+                try:
+                    self.driver.find_element(By.CSS_SELECTOR, "[class*='header']")
+                    self.logger.debug("Found header element on dashboard.")
+                    return
+                except NoSuchElementException:
+                    pass
+                # If we're on a gofluent app page but can't find specific elements,
+                # wait a bit for the page to finish loading
+                if any(path in current_url for path in ["/dashboard", "/training", "/app/"]):
+                    sleep(2)
+                    self.logger.debug(f"On GoFluent app page: {current_url}")
+                    return
+
+        raise TimeoutException(f"Dashboard did not load after {timeout}s. URL: {self.driver.current_url}")
+
     def close_modal_if_exists(self):
         """Close the page modal if it exists"""
         try:
@@ -132,17 +169,53 @@ class Scraper:
 
         self.driver.get("https://portal.gofluent.com/login/samlconnector")
 
+        # Wait for the login page to load
+        self.wait_for_element(
+            SELECTORS["LOGIN"]["DOMAIN"],
+            "Login page did not load (domain input not found)",
+            timeout=20,
+        )
+
         # enter the domain
         domain_input = self.driver.find_element(*SELECTORS["LOGIN"]["DOMAIN"])
         submit_button = self.driver.find_element(*SELECTORS["LOGIN"]["SUBMIT_BUTTON"])
 
         domain_input.send_keys("esaip")
+        sleep(0.5)
         submit_button.click()
 
-        # redirecting, wait for it to complete
+        self.logger.debug(f"Clicked submit on login page, current URL: {self.driver.current_url}")
+
+        # Wait for either Microsoft login page OR direct dashboard redirect
+        # (SAML SSO may bypass Microsoft login if session is cached)
+        for _ in range(60):
+            sleep(0.5)
+            try:
+                current_url = self.driver.current_url
+            except Exception:
+                continue
+            if "login.microsoftonline.com" in current_url:
+                break
+            if "gofluent.com/app/dashboard" in current_url:
+                self.logger.debug("Already redirected to dashboard (SSO session cached).")
+                self._wait_for_dashboard()
+                self.logger.info("Successfully logged in to Go Fluent.")
+                self.logged_in = True
+                return
+            if "gofluent.com/app/" in current_url and "samlconnector" not in current_url:
+                self.logger.debug(f"Redirected to GoFluent app: {current_url}")
+                self._wait_for_dashboard()
+                self.logger.info("Successfully logged in to Go Fluent.")
+                self.logged_in = True
+                return
+
+        self.logger.debug(f"On Microsoft login page: {self.driver.current_url}")
+
+        # Microsoft login flow
         self.wait_for_element(
             SELECTORS["MICROSOFT"]["USERNAME_INPUT"],
             "'Username' redirection did not work",
+            timeout=15,
         )
 
         # user input
@@ -170,30 +243,59 @@ class Scraper:
 
         password_input.send_keys(self.password)
         submit_button.click()
+        self.logger.debug(f"Submitted password. URL: {self.driver.current_url}")
 
         if self.are_credentials_invalid():
             self.logger.info("Credentials are invalid.")
             sys.exit()
         else:
-            self.logger.error("Credentials are valid.")
+            self.logger.debug("Credentials are valid.")
 
-        # redirecting, wait for it to complete
-        self.wait_for_element(
-            SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"],
-            'Could not find the "Stay signed In?" submit button.',
-        )
+        # After password submit, wait for either:
+        # 1. "Stay signed in?" prompt (Microsoft)
+        # 2. Direct redirect to GoFluent dashboard
+        # 3. MFA / other Microsoft page -> wait for user to complete manually
+        mfa_logged = False
+        for _ in range(240):  # Up to 120 seconds for MFA
+            sleep(0.5)
+            try:
+                current_url = self.driver.current_url
+            except Exception:
+                # Browser window may be temporarily unavailable during redirects
+                continue
 
-        # click the "stay signed in" button
-        submit_button = self.driver.find_element(
-            *SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"]
-        )
-        submit_button.click()
+            # Already redirected to GoFluent
+            if "gofluent.com/app/" in current_url:
+                self.logger.debug(f"Redirected to GoFluent: {current_url}")
+                break
+
+            # Check for "Stay signed in?" prompt (try multiple detection methods)
+            try:
+                submit_btn = self.driver.find_element(
+                    *SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"]
+                )
+                if submit_btn.is_displayed():
+                    # Verify we're on the "Stay signed in?" page (not the password page)
+                    page_text = self.driver.find_element(By.TAG_NAME, "body").text
+                    if any(t in page_text.lower() for t in ["stay signed in", "rester connecté", "remain signed in"]):
+                        self.logger.debug("Found 'Stay signed in?' prompt.")
+                        submit_btn.click()
+                        self.logger.debug("Clicked 'Yes' button on 'Stay signed in' page.")
+                        break
+            except NoSuchElementException:
+                pass
+
+            # If still on Microsoft login, MFA might be required
+            if "login.microsoftonline.com" in current_url and not mfa_logged:
+                self.logger.info(
+                    chalk.yellow("Waiting for MFA / 2FA approval (complete it in the browser)...")
+                )
+                mfa_logged = True
+
+        self.logger.debug(f"After post-password wait. URL: {self.driver.current_url}")
 
         # wait for dashboard to appear
-        self.wait_for_element(
-            SELECTORS["DASHBOARD"]["LOGO"],
-            "'Password' redirection did not work",
-        )
+        self._wait_for_dashboard(timeout=60)
 
         self.logger.info("Successfully logged in to Go Fluent.")
         self.logged_in = True
@@ -209,23 +311,62 @@ class Scraper:
             locator, "Page didn't load. (didn't found the nav tab)", 5
         )
 
+        # Dismiss any modal backdrop that might be covering the page
+        self.close_modal_if_exists()
+        try:
+            backdrop = self.driver.find_element(
+                By.CSS_SELECTOR, ".MuiBackdrop-root"
+            )
+            self.driver.execute_script("arguments[0].click()", backdrop)
+            sleep(1)
+        except NoSuchElementException:
+            pass
+
         button = self.driver.find_element(*locator)
-        button.click()
+        try:
+            button.click()
+        except Exception:
+            # If still intercepted, use JavaScript click as fallback
+            self.driver.execute_script("arguments[0].click()", button)
 
         self.logger.debug(f"Switched to the {tab}.")
+
+    def _rewrite_url_domain(self, url: str) -> str:
+        """Rewrite a GoFluent URL to use the same domain as the current session.
+
+        After SSO login the browser lands on e.g. esaip.gofluent.com, but
+        user-supplied URLs may use portal.gofluent.com which doesn't share
+        the session cookie.
+        """
+        current = urlparse(self.driver.current_url)
+        target = urlparse(url)
+        if current.netloc and current.netloc != target.netloc and "gofluent.com" in target.netloc:
+            rewritten = urlunparse(target._replace(scheme=current.scheme, netloc=current.netloc))
+            self.logger.debug(f"Rewrote URL domain: {target.netloc} → {current.netloc}")
+            return rewritten
+        return url
 
     @logged_in
     def load_activity_page_and_tab(self, activity: Activity, tab: str):
         """Load the activity page from the url and switch to the selected tab"""
+        url = self._rewrite_url_domain(activity.url)
+
         # Navigate to the activity tab if it's not the case yet
-        if not self.driver.current_url.startswith(activity.url):
-            self.driver.get(activity.url)
+        if not self.driver.current_url.startswith(url):
+            self.logger.debug(f"Navigating to activity URL: {url}")
+            self.driver.get(url)
+            self.logger.debug(f"After navigation, URL is: {self.driver.current_url}")
 
         # Wait for the page to load
         locator = SELECTORS["NAV"]["CONTAINER"]
-        self.wait_for_element(
-            locator, "Page didn't load. (didn't found the navs container)"
-        )
+        try:
+            self.wait_for_element(
+                locator, "Page didn't load. (didn't found the navs container)",
+                timeout=30,
+            )
+        except TimeoutException:
+            self.logger.error(f"Tabs not found. Current URL: {self.driver.current_url}")
+            raise
         self.logger.debug("Page successfully loaded")
 
         self.select_tab(tab)
@@ -237,13 +378,33 @@ class Scraper:
             self.driver.find_element(*locator)
             return True
         except NoSuchElementException:
+            pass
+        # Fallback: check for the end page container
+        try:
+            locator = SELECTORS["QUIZ"]["END_PAGE"]
+            self.driver.find_element(*locator)
+            return True
+        except NoSuchElementException:
             return False
 
     def get_score(self):
-        """Get the quiz score"""
+        """Get the quiz score (percentage) from the end page.
+
+        The selector matches multiple elements (container, labels, values).
+        We look for the one whose text ends with '%' (e.g. '50%').
+        """
         try:
-            value_el = self.driver.find_element(*SELECTORS["QUIZ"]["VALUE"])
-            return int(value_el.text[:-1])
+            elements = self.driver.find_elements(*SELECTORS["QUIZ"]["VALUE"])
+            for el in elements:
+                text = el.text.strip()
+                # Look for a short string like "83%" — not the container
+                # which includes all text ("Résultat\n5 / 6\nPrécision\n83%")
+                if text.endswith("%") and "\n" not in text:
+                    try:
+                        return int(text[:-1])
+                    except ValueError:
+                        continue
+            return None
         except NoSuchElementException:
             return None
 
@@ -252,6 +413,7 @@ class Scraper:
         locator = SELECTORS["QUIZ"]["RETAKE"]
         button = self.driver.find_element(*locator)
         button.click()
+        sleep(2)  # Wait for page transition after retake
 
     @logged_in
     def do_activity(self, activity: Activity):
@@ -350,7 +512,7 @@ class Scraper:
         msg = "Activity already done." if not activity.valid else "Activity done !"
         self.logger.info(chalk.bold(chalk.red(msg)))
 
-        if self.cache:
+        if self.cache and activity.valid:
             add_to_cache([activity.url])
 
         return activity.valid
@@ -362,6 +524,7 @@ class Scraper:
         count=10,
         cached_activities: list[Activity] = [],
         scroll_count=1,
+        max_scroll_rounds=30,
     ):
         """Retrieve n activities from the go-fluent portal (where n = count)"""
         url = ""
@@ -388,6 +551,8 @@ class Scraper:
         activities_urls = get_urls_from_activities_container(
             html, self.minimum_level, self.maximum_level
         )
+        self.logger.debug(f"Found {len(activities_urls)} total activity URLs on page.")
+
         activities_urls = list(
             filter(
                 lambda url1: not (url1 in cached_activities_url)
@@ -396,42 +561,70 @@ class Scraper:
             )
         )
 
-        activities = list(map(lambda url1: Activity(url1), activities_urls))
-        done_activities = []
+        self.logger.debug(f"Found {len(activities_urls)} new (non-cached) activity URLs.")
 
-        for activity in activities:
-            self.try_solving_and_set_validity(activity)
-            done_activities.append(activity)
-
-            done_valid_activities_count = len(
-                list(
-                    filter(
-                        lambda activity1: activity1.valid,
-                        done_activities + cached_activities,
-                    )
+        # If no new activities found after scrolling, stop recursing
+        if not activities_urls:
+            if scroll_count >= max_scroll_rounds:
+                self.logger.info(
+                    chalk.yellow(f"Reached max scroll rounds ({max_scroll_rounds}), stopping.")
                 )
-            )
-
-            msg = f"Done {done_valid_activities_count}/{count} activities."
-            self.logger.info(chalk.bold(chalk.green(msg)))
-
-            if done_valid_activities_count >= count:
                 return
 
+            self.logger.debug(f"No new activities found, scrolling (round {scroll_count})...")
+        else:
+            activities = list(map(lambda url1: Activity(url1), activities_urls))
+            done_activities = []
+
+            for activity in activities:
+                self.try_solving_and_set_validity(activity)
+                done_activities.append(activity)
+
+                done_valid_activities_count = len(
+                    list(
+                        filter(
+                            lambda activity1: activity1.valid,
+                            done_activities + cached_activities,
+                        )
+                    )
+                )
+
+                msg = f"Done {done_valid_activities_count}/{count} activities."
+                self.logger.info(chalk.bold(chalk.green(msg)))
+
+                if done_valid_activities_count >= count:
+                    return
+
+            cached_activities = done_activities + cached_activities
+
+        # Scroll to load more activities
         script = """
-        const element1 = document.querySelector('.browse-all-activities .rcs-inner-container');
-        element1.scrollTo({ top: element1.scrollTopMax });
+        const container = document.querySelector('.browse-all-activities__list');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+            return 'scrolled-list';
+        }
+        const rcsContainer = document.querySelector('.browse-all-activities .rcs-inner-container');
+        if (rcsContainer) {
+            rcsContainer.scrollTop = rcsContainer.scrollHeight;
+            return 'scrolled-rcs';
+        }
+        // Fallback: scroll the page itself
+        window.scrollTo(0, document.body.scrollHeight);
+        return 'scrolled-window';
         """
 
         for _ in range(scroll_count):
-            self.driver.execute_script(script)
-            sleep(0.2)
+            result = self.driver.execute_script(script)
+            self.logger.debug(f"Scroll result: {result}")
+            sleep(0.3)
 
-        sleep(0.8)
+        sleep(1.0)
 
         return self.retrieve_and_do_activities(
             is_vocabulary,
             count,
-            activities,
+            cached_activities,
             scroll_count + 1,
+            max_scroll_rounds,
         )

@@ -1,11 +1,11 @@
 """Activity quiz questions modules"""
+
 from logging import Logger
 
 import chalk
-
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
-
-from src.utils.lists import _m
 
 from src.constants.selectors import SELECTORS
 
@@ -24,12 +24,27 @@ class Question:
         self.first_use = True
 
     def get_correct_answer(self):
-        """Return the value of the correct answer"""
-        return []
+        """Return the value of the correct answer from the explanation section"""
+        try:
+            items = self.element.find_elements(
+                *SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"]
+            )
+            if items:
+                return [item.text.strip() for item in items if item.text.strip()]
+
+            title = self.element.find_element(
+                *SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"]
+            )
+            text = title.text.strip()
+            if text:
+                return [text]
+            return None
+        except NoSuchElementException:
+            return None
 
     def as_text(self):
         """Return the question as text"""
-        return
+        return self.element.text
 
     def answer(self, _value: str):
         """Answer the value and return the correct answer"""
@@ -37,7 +52,22 @@ class Question:
 
     def submit_and_check_correct_answer(self, values: list[str]):
         """Submit the question and check if the returned response is correct"""
-        submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
+        try:
+            submit_button = self.element.find_element(*SELECTORS["QUIZ"]["SUBMIT"])
+        except NoSuchElementException:
+            # Submit button is outside the question container in the new layout.
+            # Use the WebDriver (element.parent) to search from the document root.
+            try:
+                submit_button = self.element.parent.find_element(
+                    *SELECTORS["QUIZ"]["SUBMIT"]
+                )
+            except NoSuchElementException:
+                self.logger.error(
+                    "Submit button not found (may be hidden/disabled). "
+                    "Returning values as-is."
+                )
+                return values
+
         submit_button.click()
 
         correct_answer = self.get_correct_answer()
@@ -53,63 +83,105 @@ class Question:
 
     @staticmethod
     def from_element(logger: Logger, element: WebElement):
-        """Get the appropriate Question sub-class for the element"""
+        """Get the appropriate Question sub-class for the element.
 
-        from src.classes.questions.scrambled_sentences_question import (
-            ScrambledSentencesQuestion,
-        )
+        Detects question type from DOM structure rather than CSS classes,
+        since the new quiz uses CSS modules with hashed class names.
+        """
+
+        from src.classes.questions.fill_gaps_block_question import FillGapsBlockQuestion
+        from src.classes.questions.fill_gaps_text_question import FillGapsTextQuestion
+        from src.classes.questions.match_text_question import MatchTextQuestion
         from src.classes.questions.multi_choice_image_question import (
             MultiChoiceImageQuestion,
-        )
-        from src.classes.questions.scrambled_letters_question import (
-            ScrambledLettersQuestion,
         )
         from src.classes.questions.multi_choice_text_question import (
             MultiChoiceTextQuestion,
         )
-        from src.classes.questions.fill_gaps_block_question import FillGapsBlockQuestion
-        from src.classes.questions.fill_gaps_text_question import FillGapsTextQuestion
-        from src.classes.questions.match_text_question import MatchTextQuestion
+        from src.classes.questions.scrambled_letters_question import (
+            ScrambledLettersQuestion,
+        )
+        from src.classes.questions.scrambled_sentences_question import (
+            ScrambledSentencesQuestion,
+        )
         from src.classes.questions.short_text_question import ShortTextQuestion
 
-        curr_classes = element.get_attribute("class").split(" ")
+        def has(css):
+            return len(element.find_elements(By.CSS_SELECTOR, css)) > 0
 
-        def has_all_classes(classes: list[str]):
-            """Check if the element has all the classes passed"""
-            return all(_m(lambda c: c in curr_classes, classes))
+        # Multiple choice: has radio button options
+        if has("label[role='radio']"):
+            if has("label[role='radio'] img"):
+                return MultiChoiceImageQuestion(
+                    logger, "Multiple choice image question", element
+                )
+            return MultiChoiceTextQuestion(
+                logger, "Multiple choice text question", element
+            )
 
-        otp_block = "Question_output_text-blocks"
-        otp_text = "Question_output_text"
-        otp_img = "Question_output_picture"
-        otp_text_mult = "Question_output_text-multiple"
-
-        if (
-                has_all_classes(["Question_type_multiple-choice", otp_text])
-                or has_all_classes(["Question_type_multiple-choice", otp_text_mult])
-                or has_all_classes(["Question_type_true-or-false", otp_text])
-        ):
-            m = otp_text_mult in curr_classes
-            return MultiChoiceTextQuestion(logger, "Multiple choice text question", element, m)
-
-        if has_all_classes(["Question_type_scrambled-letters", otp_text]):
-            return ScrambledLettersQuestion(logger, "Scrambled letters question", element)
-
-        if has_all_classes(["Question_type_scrambled-sentence", otp_block]):
-            return ScrambledSentencesQuestion(logger, "Scrambled sentences question", element)
-
-        if has_all_classes(["Question_type_match-text", otp_block]):
-            return MatchTextQuestion(logger, "Match text block question", element)
-
-        if has_all_classes(["Question_type_fill-in-the-gaps", otp_text]):
-            return FillGapsTextQuestion(logger, "Fill in gaps text question", element)
-
-        if has_all_classes(["Question_type_fill-in-the-gaps", otp_block]):
-            return FillGapsBlockQuestion(logger, "Fill in gaps block question", element)
-
-        if has_all_classes(["Question_type_short-answer", otp_text]):
+        # Short answer: has a textarea for free text input
+        if has("textarea"):
             return ShortTextQuestion(logger, "Short answer text question", element)
 
-        if has_all_classes(["Question_type_multiple-choice", otp_img]):
-            return MultiChoiceImageQuestion(logger, "Multiple choice image question", element)
+        # Fill gaps text: has text input fields for typing answers
+        if has("input[type='text']"):
+            return FillGapsTextQuestion(logger, "Fill in gaps text question", element)
+
+        # Drag-and-drop types: use source container with clickable chips
+        if has("#source-container"):
+            source_options = element.find_elements(
+                By.CSS_SELECTOR, "#source-container [role='button']"
+            )
+
+            # Single-character chips → scrambled letters
+            if source_options and all(len(o.text.strip()) <= 1 for o in source_options):
+                return ScrambledLettersQuestion(
+                    logger, "Scrambled letters question", element
+                )
+
+            # Check for receiver drop targets
+            receivers = element.find_elements(By.CSS_SELECTOR, "[id^='receiver-']")
+
+            if receivers:
+                # Multiple receivers → match text (each receiver pairs with a word)
+                # or fill gaps block (receivers as blanks in a sentence).
+                # GoFluent uses quiz-scrambled-letters_stem for both match and
+                # scrambled types, so check receiver count instead of stem class.
+                if len(receivers) > 1:
+                    # Check if receivers are inline within a stem sentence
+                    # (fill gaps block) vs paired with word labels (match text).
+                    # Look for stems in both quiz-common-question and
+                    # quiz-scrambled-letters modules.
+                    stem_els = element.find_elements(
+                        By.CSS_SELECTOR,
+                        "[class*='quiz-common-question_stem'],"
+                        " [class*='quiz-scrambled-letters_stem']",
+                    )
+                    if stem_els:
+                        stem = stem_els[0]
+                        # Count non-receiver text children (word labels).
+                        # Match text has labels like <span><p>Word</p></span>
+                        # adjacent to each receiver.
+                        text_labels = stem.find_elements(By.CSS_SELECTOR, "span")
+                        if text_labels:
+                            return MatchTextQuestion(
+                                logger, "Match text question", element
+                            )
+                        # No text labels → fill gaps block
+                        return FillGapsBlockQuestion(
+                            logger, "Fill in gaps block question", element
+                        )
+                    # Fallback: multiple receivers → match text
+                    return MatchTextQuestion(logger, "Match text question", element)
+
+                # Single receiver → scrambled sentences
+                return ScrambledSentencesQuestion(
+                    logger, "Scrambled sentences question", element
+                )
+
+            # Source container without receivers → scrambled sentences
+            return ScrambledSentencesQuestion(
+                logger, "Scrambled sentences question", element
+            )
 
         return None

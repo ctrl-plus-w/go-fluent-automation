@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from src.classes.questions.question import Question
 from src.classes.logger import Logger
 
+from src.constants.selectors import SELECTORS
 from src.utils.strings import escape
 
 
@@ -19,19 +20,22 @@ class MultiChoiceImageQuestion(Question):
 
     def get_correct_answer(self):
         try:
-            locator = (
-                By.CSS_SELECTOR,
-                ".Question__option.Question__option_correct_yes img",
-            )
-            correct_answer = self.element.find_element(*locator)
-            src = correct_answer.get_attribute("src")
+            # Look for the radio option marked as correct and get its image src
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["RADIO_OPTION"])
+            for option in options:
+                classes = option.get_attribute("class") or ""
+                if "correctSelected" in classes:
+                    img = option.find_element(By.CSS_SELECTOR, "img")
+                    src = img.get_attribute("src")
 
-            basepath = "https://esaip.gofluent.com"
+                    basepath = "https://esaip.gofluent.com"
 
-            if src.startswith(basepath):
-                return [src[len(basepath) :]]
+                    if src.startswith(basepath):
+                        return [src[len(basepath) :]]
 
-            return [src]
+                    return [src]
+
+            return None
 
         except NoSuchElementException:
             return None
@@ -43,8 +47,8 @@ class MultiChoiceImageQuestion(Question):
     def get_random_option(self):
         """Get a random option (if no remaining, return None)"""
         try:
-            xpath = '//*[contains(@class,"Question__options")]//button[contains(@class,"Question__option")]'
-            return self.element.find_element(By.XPATH, xpath)
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["RADIO_OPTION"])
+            return options[0] if options else None
         except NoSuchElementException:
             return None
 
@@ -57,20 +61,31 @@ class MultiChoiceImageQuestion(Question):
             self.logger.debug("Selecting a random option.")
             option.click()
         else:
-            self.logger.debug("Did not found any random options.")
+            self.logger.debug("Did not find any random options.")
 
-    def answer(self, values: str):
+    def answer(self, values: list[str]):
         value = values[0]
 
         if value == "SKIP":
             self.select_random_option()
         else:
-            xpath = f'//button[contains(@class,"Question__option")]//*[contains(@src, "{value}")]/..'
-            locator = (By.XPATH, xpath)
+            try:
+                options = self.element.find_elements(*SELECTORS["QUIZ"]["RADIO_OPTION"])
+                matched = False
+                for option in options:
+                    try:
+                        img = option.find_element(By.CSS_SELECTOR, "img")
+                        if value in (img.get_attribute("src") or ""):
+                            option.click()
+                            self.logger.debug(f'Selected the "{escape(value)}" choice.')
+                            matched = True
+                            break
+                    except NoSuchElementException:
+                        continue
 
-            button = self.element.find_element(*locator)
-
-            button.click()
-            self.logger.debug(f'Selected the "{escape(value)}" choice.')
+                if not matched:
+                    self.select_random_option()
+            except NoSuchElementException:
+                self.select_random_option()
 
         return self.submit_and_check_correct_answer(values)

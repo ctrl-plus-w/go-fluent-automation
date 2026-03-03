@@ -1,34 +1,43 @@
 """Short text question module"""
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 from src.classes.questions.question import Question
 
-from src.utils.parser import (
-    get_green_text_correct_answer,
-)
+from src.constants.selectors import SELECTORS
 
 
 class ShortTextQuestion(Question):
     """Short text question"""
 
     def as_text(self):
-        locator = (By.CSS_SELECTOR, ".Stem__answer-block-text")
-        self.question_str = self.element.find_element(*locator).text
+        # Get the stem text (the question/prompt)
+        try:
+            stem = self.element.find_element(*SELECTORS["QUIZ"]["STEM"])
+            self.question_str = stem.text.strip()
+        except NoSuchElementException:
+            self.question_str = self.element.text
         return self.question_str
 
     def get_correct_answer(self):
-        answer = get_green_text_correct_answer(self.element.get_attribute("outerHTML"))
+        try:
+            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
+            if items:
+                return [item.text.strip() for item in items if item.text.strip()]
 
-        if answer:
-            return [answer]
-
-        self.logger.debug("Did not found a green tag for the correct answer.")
-        return None
+            title = self.element.find_element(*SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"])
+            text = title.text.strip()
+            if text:
+                return [text]
+            return None
+        except NoSuchElementException:
+            self.logger.debug("Did not find the correct answer explanation.")
+            return None
 
     def answer(self, values: list[str]):
         value = values[0]
 
-        locator = (By.CSS_SELECTOR, "textarea.Stem__answer_non-arabic")
+        locator = (By.CSS_SELECTOR, "textarea")
         text_input = self.element.find_element(*locator)
 
         text_input.send_keys(value)

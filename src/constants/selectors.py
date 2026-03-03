@@ -4,8 +4,8 @@ from selenium.webdriver.common.by import By
 SELECTORS = {
     "LOGIN": {
         "SUBMIT_BUTTON": (
-            By.XPATH,
-            '/html/body/div/div/div/div/div[2]/form/div/div[2]/button',
+            By.CSS_SELECTOR,
+            'button[type="submit"]',
         ),
         "DOMAIN": (
             By.ID,
@@ -117,36 +117,70 @@ SELECTORS = {
     },
     "QUIZ": {
         "CONTAINER": (
+            By.ID,
+            "quiz",
+        ),
+        "START": (
             By.CSS_SELECTOR,
-            ".QuizContainer"
+            "#quiz-button-start, #quiz-button-resume",
         ),
         "QUESTION": (
             By.CSS_SELECTOR,
-            ".Question",
-        ),
-        "ANSWER": (
-            By.CSS_SELECTOR,
-            ".Question__option",
-        ),
-        "CORRECT_ANSWER": (
-            By.XPATH,
-            "//p[contains(@style, 'color: green;')]",
+            "[class*='quiz-common-question_container']",
         ),
         "SUBMIT": (
-            By.CSS_SELECTOR,
-            ".Question__submit",
+            By.ID,
+            "quiz-button-submit",
         ),
         "NEXT": (
-            By.CSS_SELECTOR,
-            ".Question__next",
+            By.ID,
+            "quiz-button-next",
         ),
         "RETAKE": (
-            By.CSS_SELECTOR,
-            ".QuizResults__retake",
+            By.XPATH,
+            "//button[contains(@class, 'quiz-button_outlined')]",
         ),
         "VALUE": (
             By.CSS_SELECTOR,
-            ".QuizResults__value",
+            "[class*='quiz-score_score']",
+        ),
+        "END_PAGE": (
+            By.CSS_SELECTOR,
+            "[class*='quiz-end-page_container']",
+        ),
+        "SOURCE_CONTAINER": (
+            By.ID,
+            "source-container",
+        ),
+        "SOURCE_OPTION": (
+            By.CSS_SELECTOR,
+            "#source-container [role='button']",
+        ),
+        "RECEIVER": (
+            By.CSS_SELECTOR,
+            "[id^='receiver-']",
+        ),
+        "RADIO_OPTION": (
+            By.CSS_SELECTOR,
+            "label[role='radio']",
+        ),
+        "CORRECT_ANSWER_TITLE": (
+            By.CSS_SELECTOR,
+            "[class*='quiz-explanation_title']",
+        ),
+        "CORRECT_ANSWER_LIST": (
+            By.CSS_SELECTOR,
+            "[class*='quiz-explanation_title'] ~ ul li",
+        ),
+        "INSTRUCTIONS": (
+            By.CSS_SELECTOR,
+            "[class*='quiz-common-question_instructions']",
+        ),
+        "STEM": (
+            By.CSS_SELECTOR,
+            "[class*='quiz-common-question_stem'],"
+            " [class*='quiz-text-inputs_stem'],"
+            " [class*='quiz-scrambled-letters_stem']",
         ),
     },
 }
