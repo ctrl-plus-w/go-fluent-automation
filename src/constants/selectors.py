@@ -48,6 +48,32 @@ SELECTORS = {
             '//span[contains(@class, "skipButton")]',
         ),
     },
+    "PROFILE": {
+        "LANGUAGE_ITEM": (
+            By.XPATH,
+            "//img[starts-with(@alt, 'flag')]/ancestor::div[contains(@class, 'profile-item_item')]",
+        ),
+        "LANGUAGE_VALUE": (
+            By.CSS_SELECTOR,
+            "div[class*='profile-item_content']",
+        ),
+        "LANGUAGE_FLAG": (
+            By.CSS_SELECTOR,
+            "img[alt^='flag']",
+        ),
+        "LANGUAGE_COMBOBOX": (
+            By.CSS_SELECTOR,
+            ".MuiAutocomplete-input",
+        ),
+        "LANGUAGE_OPEN_BUTTON": (
+            By.CSS_SELECTOR,
+            ".MuiAutocomplete-popupIndicator",
+        ),
+        "LANGUAGE_OPTION": (
+            By.CSS_SELECTOR,
+            "[role='option']",
+        ),
+    },
     "TRAINING": {
         "CONTAINER": (
             By.CSS_SELECTOR, ".training-page"
@@ -79,7 +105,11 @@ SELECTORS = {
         "BLOCK_CARD_LINK": (
             By.CSS_SELECTOR,
             '.training-card__link',
-        )
+        ),
+        "BLOCK_CARD_FLAG": (
+            By.CSS_SELECTOR,
+            "img[alt^='flag']",
+        ),
     },
     "VOCABULARY": {
         "ACTIVITIES_CONTAINER": (

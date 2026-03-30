@@ -19,6 +19,7 @@ class AutoRun:
         username: str,
         password: str,
         cache: bool,
+        language: str,
         minimum_level: Optional[str] = None,
         maximum_level: Optional[str] = None,
         profile: Optional[str] = None,
@@ -30,6 +31,7 @@ class AutoRun:
         self.password = password
         self.logger = logger
         self.cache = cache
+        self.language = language
         self.minimum_level = minimum_level
         self.maximum_level = maximum_level
         self.profile = profile
@@ -43,10 +45,13 @@ class AutoRun:
             username=self.username,
             password=self.password,
             cache=self.cache,
+            language=self.language,
             minimum_level=self.minimum_level,
             maximum_level=self.maximum_level,
             profile=self.profile,
         )
+
+        scraper.ensure_language()
 
         self.logger.info("Retrieving the count of done activities for this month.")
 

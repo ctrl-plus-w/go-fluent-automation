@@ -8,10 +8,11 @@ import os
 import sys
 import chalk
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
@@ -47,6 +48,7 @@ class Scraper:
         username: str,
         password: str,
         cache: bool,
+        language: str,
         minimum_level: Optional[str] = None,
         maximum_level: Optional[str] = None,
         profile: Optional[str] = None,
@@ -57,6 +59,8 @@ class Scraper:
         self.password = password
         self.logger = logger
         self.cache = cache
+        self.language = language
+        self.language_flag_alt: Optional[str] = None
         self.minimum_level = minimum_level
         self.maximum_level = maximum_level
         self.profile = profile
@@ -159,6 +163,104 @@ class Scraper:
             self.logger.debug("Closed the modal.")
         except (NoSuchElementException, TimeoutException):
             return
+
+    def _read_profile_language(self):
+        """Read the current language and flag alt from the profile page.
+
+        Assumes the driver is already on the profile page.
+        Returns (language_name, flag_alt).
+        """
+        lang_item = self.driver.find_element(*SELECTORS["PROFILE"]["LANGUAGE_ITEM"])
+        lang_value = lang_item.find_element(*SELECTORS["PROFILE"]["LANGUAGE_VALUE"])
+        flag_img = lang_item.find_element(*SELECTORS["PROFILE"]["LANGUAGE_FLAG"])
+        return lang_value.text.strip(), flag_img.get_attribute("alt")
+
+    @logged_in
+    def ensure_language(self):
+        """Ensure the learning language on the profile page matches self.language.
+
+        Navigates to the profile page, reads the current language, and switches
+        it if necessary. Also stores the flag alt text for filtering activities.
+        """
+        self.logger.info(f"Ensuring learning language is set to '{self.language}'.")
+
+        url = "https://esaip.gofluent.com/app/profile"
+        self.driver.get(url)
+        sleep(3)
+
+        self.logger.debug(f"Profile page URL: {self.driver.current_url}")
+
+        # Log all h3 headings for debugging selector issues
+        h3_elements = self.driver.find_elements(By.TAG_NAME, "h3")
+        for h3 in h3_elements:
+            self.logger.debug(f"Found h3: '{h3.text}'")
+
+        self.wait_for_element(
+            SELECTORS["PROFILE"]["LANGUAGE_ITEM"],
+            "Profile page didn't load (language item not found)",
+            timeout=20,
+        )
+
+        current_language, flag_alt = self._read_profile_language()
+        self.language_flag_alt = flag_alt
+
+        if current_language == self.language:
+            self.logger.info(f"Language already set to '{self.language}'.")
+            return
+
+        self.logger.info(f"Switching language from '{current_language}' to '{self.language}'.")
+
+        # Click the language item to enter edit mode (DOM re-renders after click)
+        lang_item = self.driver.find_element(*SELECTORS["PROFILE"]["LANGUAGE_ITEM"])
+        self.driver.execute_script("arguments[0].click()", lang_item)
+        sleep(2)
+
+        # Open the dropdown by clicking the popup indicator button
+        for attempt in range(5):
+            try:
+                open_btn = self.driver.find_element(*SELECTORS["PROFILE"]["LANGUAGE_OPEN_BUTTON"])
+                open_btn.click()
+                break
+            except (StaleElementReferenceException, NoSuchElementException):
+                self.logger.debug(f"Open button not ready, retrying ({attempt + 1}/5)...")
+                sleep(1)
+        else:
+            raise TimeoutException("Could not open language dropdown after 5 retries.")
+
+        sleep(1)
+
+        # Find and click the matching option from the full list
+        for attempt in range(5):
+            options = self.driver.find_elements(*SELECTORS["PROFILE"]["LANGUAGE_OPTION"])
+            self.logger.debug(f"Found {len(options)} language options.")
+            for option in options:
+                if option.text.strip() == self.language:
+                    self.driver.execute_script("arguments[0].scrollIntoView(true)", option)
+                    sleep(0.2)
+                    option.click()
+                    self.logger.debug(f"Selected option '{self.language}'.")
+                    break
+            else:
+                self.logger.debug(f"Option not found yet, retrying ({attempt + 1}/5)...")
+                sleep(1)
+                continue
+            break
+        else:
+            raise ValueError(f"Language option '{self.language}' not found in the dropdown.")
+
+        sleep(2)
+
+        # Re-read the flag alt text after switching
+        self.driver.get(url)
+        self.wait_for_element(
+            SELECTORS["PROFILE"]["LANGUAGE_ITEM"],
+            "Profile page didn't reload after language switch",
+            timeout=20,
+        )
+        _, flag_alt = self._read_profile_language()
+        self.language_flag_alt = flag_alt
+
+        self.logger.info(f"Language switched to '{self.language}'.")
 
     def login(self, redirect: Optional[str] = None):
         """Log in the user to the GoFluent website"""
@@ -472,6 +574,15 @@ class Scraper:
         activities = []
 
         for block_card in block_cards:
+            # Filter by language flag if we have a reference flag alt text
+            if self.language_flag_alt:
+                try:
+                    flag_img = block_card.find_element(*SELECTORS["TRAINING"]["BLOCK_CARD_FLAG"])
+                    if flag_img.get_attribute("alt") != self.language_flag_alt:
+                        continue
+                except NoSuchElementException:
+                    continue
+
             locator = SELECTORS["TRAINING"]["BLOCK_CARD_LINK"]
             url = f"https://esaip.gofluent.com{block_card.find_element(*locator).get_attribute('href')}"
             activities.append(Activity(url, date))

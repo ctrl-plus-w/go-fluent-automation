@@ -53,6 +53,13 @@ def get_parser():
         help="Do the grammar activities",
     )
 
+    # Language parameter (mandatory)
+    parser.add_argument(
+        "--language",
+        required=True,
+        help="The learning language to use (e.g., 'Anglais', 'Espagnol', 'Allemand', 'Russe').",
+    )
+
     # Other parameters
     parser.add_argument(
         "--debug",
@@ -153,6 +160,7 @@ def main():
                 username=username,
                 password=password,
                 cache=args.cache,
+                language=args.language,
                 minimum_level=args.minimum_level,
                 maximum_level=args.maximum_level,
                 profile=args.profile,
@@ -166,6 +174,7 @@ def main():
                 username=username,
                 password=password,
                 cache=args.cache,
+                language=args.language,
                 profile=args.profile,
             )
             runner.execute()

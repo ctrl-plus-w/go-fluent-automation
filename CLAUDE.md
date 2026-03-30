@@ -10,12 +10,13 @@ Python automation tool for the GoFluent language learning platform. Uses Seleniu
 
 ```bash
 # Run (auto mode - solve N activities for the month)
-python3 -m src.main --auto-run 10 --grammar
+python3 -m src.main --auto-run 10 --grammar --language Anglais
 
 # Run (simple mode - solve a single activity by URL)
-python3 -m src.main --simple-run <URL>
+python3 -m src.main --simple-run <URL> --language Espagnol
 
 # Useful flags
+--language <NAME>    # (Required) Learning language (e.g., Anglais, Espagnol, Allemand, Russe)
 --debug              # Verbose console logging
 --no-headless        # Show browser window
 --cache / --no-cache # Toggle activity URL caching
