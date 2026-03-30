@@ -47,12 +47,14 @@ class ScrambledSentencesQuestion(Question):
             return None
 
     def can_answer(self):
-        """Check if there are empty receiver slots"""
+        """Check if there are empty receiver slots or remaining source options"""
         receivers = self.element.find_elements(*SELECTORS["QUIZ"]["RECEIVER"])
         for receiver in receivers:
             if receiver.text.strip() == "":
                 return True
-        return False
+        # Single-receiver layouts: receiver has text but may still need more chips
+        options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+        return len(options) > 0
 
     def get_random_option(self):
         """Get a random unselected option from the source container"""
@@ -86,6 +88,24 @@ class ScrambledSentencesQuestion(Question):
                         option.click()
                         clicked = True
                         break
+
+                if not clicked:
+                    # Value may be the full sentence (from cached correct answer).
+                    # Find all source options that appear as substrings and click
+                    # them in sentence order.
+                    matches = []
+                    for opt in self.element.find_elements(
+                        *SELECTORS["QUIZ"]["SOURCE_OPTION"]
+                    ):
+                        opt_text = opt.text.strip().lower()
+                        pos = value.strip().lower().find(opt_text)
+                        if pos >= 0:
+                            matches.append((pos, opt))
+                    if matches:
+                        matches.sort(key=lambda x: x[0])
+                        for _, opt in matches:
+                            opt.click()
+                        clicked = True
 
                 if not clicked:
                     self.logger.error(
