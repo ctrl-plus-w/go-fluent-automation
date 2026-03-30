@@ -76,6 +76,18 @@ class ScrambledSentencesQuestion(Question):
             self.logger.debug("Did not find any random options.")
 
     def answer(self, values: list[str]):
+        initial_options = self.element.find_elements(
+            *SELECTORS["QUIZ"]["SOURCE_OPTION"]
+        )
+        if not initial_options:
+            self.logger.info(
+                "No source options available (question may already be answered). "
+                "Submitting as-is."
+            )
+            return self.submit_and_check_correct_answer(values)
+
+        initial_source_count = len(initial_options)
+
         for value in values:
             try:
                 self.logger.debug(f"Retrieving button with value: '{escape(value)}'")
@@ -118,13 +130,20 @@ class ScrambledSentencesQuestion(Question):
                 )
                 self.select_random_option()
 
-        max_attempts = 50
-        attempts = 0
-        while self.can_answer() and attempts < max_attempts:
-            if not self.get_random_option():
-                self.logger.info("No source options left but receivers still empty.")
-                break
-            self.select_random_option()
-            attempts += 1
+        # Only fill remaining slots for "rearrange all" questions where
+        # the AI intended to place every chip.  For "choose one" questions
+        # (fewer AI values than source options), remaining chips are
+        # distractors and must NOT be clicked.
+        if len(values) >= initial_source_count:
+            max_attempts = 50
+            attempts = 0
+            while self.can_answer() and attempts < max_attempts:
+                if not self.get_random_option():
+                    self.logger.info(
+                        "No source options left but receivers still empty."
+                    )
+                    break
+                self.select_random_option()
+                attempts += 1
 
         return self.submit_and_check_correct_answer(values)
