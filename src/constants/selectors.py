@@ -32,6 +32,10 @@ SELECTORS = {
         "FEEDBACK": (
             By.XPATH,
             "//*[contains(text(), 'Your account or password is incorrect.')]",
+        ),
+        "PICK_ACCOUNT_OTHER": (
+            By.ID,
+            "otherTile",
         )
     },
     "DASHBOARD": {

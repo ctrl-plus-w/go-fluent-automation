@@ -49,6 +49,7 @@ class Scraper:
         cache: bool,
         minimum_level: Optional[str] = None,
         maximum_level: Optional[str] = None,
+        profile: Optional[str] = None,
     ):
         self.driver: Optional[Firefox] = None
         self.is_headless = is_headless
@@ -58,6 +59,7 @@ class Scraper:
         self.cache = cache
         self.minimum_level = minimum_level
         self.maximum_level = maximum_level
+        self.profile = profile
 
         self.logged_in = False
 
@@ -86,7 +88,9 @@ class Scraper:
         options = Options()
 
         # Use a persistent profile directory to keep session/cookies across runs
-        profile_path = os.path.join(os.getcwd(), ".session")
+        # Each --profile gets its own session directory to avoid SSO account conflicts
+        profile_name = self.profile or "default"
+        profile_path = os.path.join(os.getcwd(), ".session", profile_name)
         os.makedirs(profile_path, exist_ok=True)
         options.add_argument("-profile")
         options.add_argument(profile_path)
@@ -211,15 +215,28 @@ class Scraper:
 
         self.logger.debug(f"On Microsoft login page: {self.driver.current_url}")
 
-        # Microsoft login flow
+        # Microsoft login flow — handle "Pick an account" screen if present
+        try:
+            other_account = self.driver.find_element(*SELECTORS["MICROSOFT"]["PICK_ACCOUNT_OTHER"])
+            if other_account.is_displayed():
+                self.logger.debug("Found 'Pick an account' screen, clicking 'Use another account'.")
+                other_account.click()
+        except NoSuchElementException:
+            pass
+
         self.wait_for_element(
             SELECTORS["MICROSOFT"]["USERNAME_INPUT"],
             "'Username' redirection did not work",
             timeout=15,
         )
 
-        # user input
+        # user input — clear any pre-filled value first
         user_input = self.driver.find_element(*SELECTORS["MICROSOFT"]["USERNAME_INPUT"])
+        existing_value = user_input.get_attribute("value")
+        if existing_value and existing_value.strip() != self.username:
+            self.logger.debug(f"Username field pre-filled with '{existing_value}', clearing.")
+            user_input.clear()
+
         submit_button = self.driver.find_element(
             *SELECTORS["MICROSOFT"]["SUBMIT_BUTTON"]
         )

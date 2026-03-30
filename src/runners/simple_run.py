@@ -7,13 +7,14 @@ from src.classes.logger import Logger
 
 
 class SimpleRun:
-    def __init__(self, logger: Logger, url: str, is_headless: bool, username: str, password: str, cache: bool):
+    def __init__(self, logger: Logger, url: str, is_headless: bool, username: str, password: str, cache: bool, profile: str = None):
         self.is_headless = is_headless
         self.username = username
         self.password = password
         self.logger = logger
         self.url = url
         self.cache = cache
+        self.profile = profile
 
     def execute(self):
         """Simple-run method, solving one activity from the URL."""
@@ -24,7 +25,7 @@ class SimpleRun:
             return
 
         scraper = Scraper(logger=self.logger, is_headless=self.is_headless, username=self.username,
-                          password=self.password, cache=self.cache)
+                          password=self.password, cache=self.cache, profile=self.profile)
         activity = Activity(self.url)
 
         scraper.do_activity(activity)

@@ -155,6 +155,7 @@ def main():
                 cache=args.cache,
                 minimum_level=args.minimum_level,
                 maximum_level=args.maximum_level,
+                profile=args.profile,
             )
             runner.execute()
         else:
@@ -165,6 +166,7 @@ def main():
                 username=username,
                 password=password,
                 cache=args.cache,
+                profile=args.profile,
             )
             runner.execute()
     except KeyboardInterrupt:
