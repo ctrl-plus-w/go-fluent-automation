@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from src.classes.questions.question import Question
 
 from src.constants.selectors import SELECTORS
-from src.utils.strings import escape
+from src.utils.strings import escape, fuzzy_match, best_match_index
 
 
 class MatchTextQuestion(Question):
@@ -49,18 +49,10 @@ class MatchTextQuestion(Question):
 
     def get_correct_answer(self):
         """Get the correct answer from the explanation section"""
-        try:
-            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
-            if items:
-                return [item.text.strip() for item in items if item.text.strip()]
-
-            title = self.element.find_element(*SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"])
-            text = title.text.strip()
-            if text:
-                return text.split(", ")
-            return None
-        except NoSuchElementException:
-            return None
+        result = super().get_correct_answer()
+        if result and len(result) == 1 and ", " in result[0]:
+            return result[0].split(", ")
+        return result
 
     def get_random_option(self):
         """Get a random unselected option from the source container"""
@@ -95,15 +87,21 @@ class MatchTextQuestion(Question):
                 self.logger.debug(f"Retrieving button with value: '{escape(value)}'")
                 options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
                 clicked = False
+
+                # 1. Try case-insensitive / substring match
                 for option in options:
-                    option_text = option.text.strip().lower()
-                    value_text = value.strip().lower()
-                    # Bidirectional substring match: handles both when
-                    # AI returns full definitions or partial text
-                    if value_text in option_text or option_text in value_text:
+                    if fuzzy_match(value, option.text):
                         option.click()
                         clicked = True
                         break
+
+                # 2. Fuzzy fallback using sequence matching
+                if not clicked and options:
+                    option_texts = [o.text.strip() for o in options]
+                    idx = best_match_index(value, option_texts)
+                    if idx is not None:
+                        options[idx].click()
+                        clicked = True
 
                 if not clicked:
                     self.logger.error(

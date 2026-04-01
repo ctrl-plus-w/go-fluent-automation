@@ -19,8 +19,13 @@ class MultiChoiceImageQuestion(Question):
         self.skip_completion = True
 
     def get_correct_answer(self):
+        # Try the standard explanation section first (base class with wait + dual-context)
+        result = super().get_correct_answer()
+        if result:
+            return result
+
+        # Fallback: look for the radio option marked as correct and get its image src
         try:
-            # Look for the radio option marked as correct and get its image src
             options = self.element.find_elements(*SELECTORS["QUIZ"]["RADIO_OPTION"])
             for option in options:
                 classes = option.get_attribute("class") or ""
@@ -31,14 +36,13 @@ class MultiChoiceImageQuestion(Question):
                     basepath = "https://esaip.gofluent.com"
 
                     if src.startswith(basepath):
-                        return [src[len(basepath) :]]
+                        return [src[len(basepath):]]
 
                     return [src]
-
-            return None
-
         except NoSuchElementException:
-            return None
+            pass
+
+        return None
 
     def as_text(self):
         self.question_str = self.element.text

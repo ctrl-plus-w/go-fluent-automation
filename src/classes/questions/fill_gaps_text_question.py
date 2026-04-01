@@ -19,21 +19,6 @@ class FillGapsTextQuestion(Question):
             self.question_str = self.element.text
         return self.question_str
 
-    def get_correct_answer(self):
-        try:
-            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
-            if items:
-                return [item.text.strip() for item in items if item.text.strip()]
-
-            title = self.element.find_element(*SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"])
-            text = title.text.strip()
-            if text:
-                return [text]
-            return None
-        except NoSuchElementException:
-            self.logger.debug("Did not find the correct answer explanation.")
-            return None
-
     def get_empty_input(self):
         """Get an empty text input (if none remaining, return None)"""
         try:

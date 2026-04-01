@@ -204,7 +204,7 @@ SELECTORS = {
         ),
         "CORRECT_ANSWER_LIST": (
             By.CSS_SELECTOR,
-            "[class*='quiz-explanation_title'] ~ ul li",
+            "li[class*='quiz-explanation_answer']",
         ),
         "INSTRUCTIONS": (
             By.CSS_SELECTOR,

@@ -3,9 +3,11 @@
 from logging import Logger
 
 import chalk
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from src.constants.selectors import SELECTORS
 
@@ -23,24 +25,57 @@ class Question:
         self.cache_used = False
         self.first_use = True
 
-    def get_correct_answer(self):
-        """Return the value of the correct answer from the explanation section"""
-        try:
-            items = self.element.find_elements(
-                *SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"]
-            )
-            if items:
-                return [item.text.strip() for item in items if item.text.strip()]
+    # Feedback headings that indicate correct/wrong status — never the answer itself.
+    # Only exact matches (after normalization) are filtered. Phrases like
+    # "La bonne réponse est -" are NOT filtered because they indicate a wrong
+    # answer where the correction list should be found.
+    _FEEDBACK_EXACT = {
+        "bonne réponse", "mauvaise réponse", "good answer", "wrong answer",
+        "correct", "incorrect", "correct answer", "bien", "mal",
+        "les bonnes réponses sont", "la bonne réponse est",
+    }
 
-            title = self.element.find_element(
-                *SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"]
-            )
-            text = title.text.strip()
-            if text:
-                return [text]
-            return None
-        except NoSuchElementException:
-            return None
+    def _is_feedback_text(self, text: str) -> bool:
+        """Check if text is a feedback heading rather than an actual answer."""
+        normalized = text.strip().lower().rstrip("!.- ")
+        return normalized in self._FEEDBACK_EXACT
+
+    def get_correct_answer(self):
+        """Return the value of the correct answer from the explanation section.
+
+        Searches within the question element first, then falls back to the
+        document root (driver) in case the explanation renders outside the
+        question container.
+
+        Only returns values from the answer list items (ul li). The title
+        element contains feedback text ("Bonne réponse !") and is only used
+        as a fallback when it clearly contains an actual answer.
+        """
+        # Search within the question element, then from the document root
+        for context in [self.element, self.element.parent]:
+            try:
+                items = context.find_elements(
+                    *SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"]
+                )
+                if items:
+                    result = [item.text.strip() for item in items if item.text.strip()]
+                    if result:
+                        return result
+
+                # The title element usually contains feedback text like
+                # "Bonne réponse !" — only use it if it looks like an actual answer.
+                title = context.find_element(
+                    *SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"]
+                )
+                text = title.text.strip()
+                if text and not self._is_feedback_text(text):
+                    return [text]
+            except NoSuchElementException:
+                continue
+
+        self.logger.debug("get_correct_answer returned None (answer may be correct).")
+
+        return None
 
     def as_text(self):
         """Return the question as text"""
@@ -69,6 +104,15 @@ class Question:
                 return values
 
         submit_button.click()
+
+        # Wait for the post-submit state (explanation + next button) to render
+        driver = self.element.parent
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(SELECTORS["QUIZ"]["NEXT"])
+            )
+        except TimeoutException:
+            self.logger.debug("Post-submit wait for Next button timed out.")
 
         correct_answer = self.get_correct_answer()
 

@@ -17,20 +17,12 @@ class ScrambledLettersQuestion(Question):
         return self.question_str
 
     def get_correct_answer(self):
-        try:
-            items = self.element.find_elements(*SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"])
-            if items:
-                answer_text = items[0].text.strip()
-                return list(answer_text)
-
-            title = self.element.find_element(*SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"])
-            text = title.text.strip()
-            if text:
-                # Extract the answer word from the explanation
-                return list(text.split(" ")[-1])
-            return None
-        except NoSuchElementException:
-            return None
+        result = super().get_correct_answer()
+        if result:
+            # Convert the answer word to a list of individual characters
+            word = result[0]
+            return list(word.split(" ")[-1]) if " " in word else list(word)
+        return result
 
     def can_answer(self):
         """Check if there are empty receiver slots"""

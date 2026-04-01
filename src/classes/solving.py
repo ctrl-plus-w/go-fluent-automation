@@ -35,7 +35,7 @@ class ActivitySolving:
         button = self.scraper.driver.find_element(*locator)
         button.click()
 
-    def get_answer(self, question_str: str):
+    def get_answer(self, question_str: str, question_type: str = ""):
         """Get the cached answer or the OpenAI Completion answer"""
         question = self.activity.get_question(question_str)
 
@@ -47,7 +47,7 @@ class ActivitySolving:
 
         self.logger.debug(f'Answering : "{chalk.bold(question_str.strip())}"')
         self.logger.info("Waiting for OpenAI's response.")
-        answer = get_answer(self.logger, self.activity.data, question_str)
+        answer = get_answer(self.logger, self.activity.data, question_str, question_type)
         self.logger.debug(f'OpenAI Completion responded with : "{chalk.bold(answer)}"')
 
         return answer
@@ -111,7 +111,7 @@ class ActivitySolving:
         )
 
         answers = (
-            ["SKIP"] if question.skip_completion else self.get_answer(question_str)
+            ["SKIP"] if question.skip_completion else self.get_answer(question_str, question.type)
         )
 
         try:
@@ -157,6 +157,10 @@ class ActivitySolving:
     def resolve_quiz(self):
         """Answer to all the questions of the quiz"""
         self.logger.info("Resolving the quiz...")
+
+        # Reset cache_used flags so retakes can re-use cached correct answers
+        for q in self.activity.questions:
+            q.cache_used = False
 
         self.scraper.load_activity_page_and_tab(self.activity, "QUIZ_TAB")
         self.scraper.wait_for_element(

@@ -28,24 +28,6 @@ class ScrambledSentencesQuestion(Question):
         self.question_str = f"{stem_text}\n{choices_text}"
         return self.question_str
 
-    def get_correct_answer(self):
-        try:
-            items = self.element.find_elements(
-                *SELECTORS["QUIZ"]["CORRECT_ANSWER_LIST"]
-            )
-            if items:
-                return [item.text.strip() for item in items if item.text.strip()]
-
-            title = self.element.find_element(
-                *SELECTORS["QUIZ"]["CORRECT_ANSWER_TITLE"]
-            )
-            text = title.text.strip()
-            if text:
-                return [text]
-            return None
-        except NoSuchElementException:
-            return None
-
     def can_answer(self):
         """Check if there are empty receiver slots or remaining source options"""
         receivers = self.element.find_elements(*SELECTORS["QUIZ"]["RECEIVER"])
@@ -75,6 +57,10 @@ class ScrambledSentencesQuestion(Question):
         else:
             self.logger.debug("Did not find any random options.")
 
+    def _are_options_multiword(self, options):
+        """Check if source options are multi-word phrases (not individual words)."""
+        return any(" " in o.text.strip() for o in options)
+
     def answer(self, values: list[str]):
         initial_options = self.element.find_elements(
             *SELECTORS["QUIZ"]["SOURCE_OPTION"]
@@ -87,6 +73,22 @@ class ScrambledSentencesQuestion(Question):
             return self.submit_and_check_correct_answer(values)
 
         initial_source_count = len(initial_options)
+        multiword_options = self._are_options_multiword(initial_options)
+
+        # If options are multi-word phrases but AI returned individual words,
+        # reconstruct the phrase and try to match it as a whole.
+        if multiword_options and len(values) > initial_source_count:
+            reconstructed = " ".join(values)
+            self.logger.debug(
+                f"Options are multi-word phrases. Trying reconstructed: '{reconstructed}'"
+            )
+            options = self.element.find_elements(*SELECTORS["QUIZ"]["SOURCE_OPTION"])
+            for option in options:
+                opt_text = option.text.strip().lower()
+                if opt_text in reconstructed.lower() or reconstructed.lower().startswith(opt_text):
+                    self.logger.debug(f"Matched reconstructed phrase to option: '{option.text}'")
+                    option.click()
+                    return self.submit_and_check_correct_answer(values)
 
         for value in values:
             try:
@@ -94,12 +96,24 @@ class ScrambledSentencesQuestion(Question):
                 options = self.element.find_elements(
                     *SELECTORS["QUIZ"]["SOURCE_OPTION"]
                 )
+                if not options:
+                    break  # All options used up
+
                 clicked = False
-                for option in options:
-                    if value.strip().lower() in option.text.strip().lower():
-                        option.click()
-                        clicked = True
-                        break
+                # For multi-word options, require a tighter match to avoid
+                # short words like "a" matching wrong phrases.
+                if multiword_options:
+                    for option in options:
+                        if value.strip().lower() == option.text.strip().lower():
+                            option.click()
+                            clicked = True
+                            break
+                else:
+                    for option in options:
+                        if value.strip().lower() in option.text.strip().lower():
+                            option.click()
+                            clicked = True
+                            break
 
                 if not clicked:
                     # Value may be the full sentence (from cached correct answer).
